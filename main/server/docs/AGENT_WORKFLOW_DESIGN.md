@@ -38,7 +38,7 @@ interface AgentState {
     subject?: string;
     style?: string;
     confidence: number; // 0-1
-    rawResponse: string; // DeepSeek 原始响应
+    rawResponse: string; // LLM 原始响应
   } | null;
   
   // RAG 节点输出
@@ -152,18 +152,20 @@ async function plannerNode(state: AgentState): Promise<Partial<AgentState>> {
 如果检测到蒙版数据（maskData 存在），则 action 必须为 "inpainting"。
 `;
 
-  // 2. 调用 DeepSeek API
-  const response = await deepSeekService.chat({
-    messages: [
+  // 2. 调用 LLM 服务（通过 ILlmService 接口，支持多模型切换）
+  const response = await llmService.chatWithJson<IntentResult>(
+    [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: state.userInput.text }
     ],
-    temperature: 0.3, // 降低随机性，提高一致性
-    response_format: { type: 'json_object' }
-  });
+    {
+      temperature: 0.3, // 降低随机性，提高一致性
+      jsonMode: true // 强制 JSON 输出
+    }
+  );
 
-  // 3. 解析 JSON 响应
-  const intent = JSON.parse(response.content);
+  // 3. 直接使用结构化响应（chatWithJson 已处理 JSON 解析）
+  const intent = response;
   
   // 4. 如果有蒙版数据，强制设置为 inpainting
   if (state.userInput.maskData && intent.action !== 'inpainting') {
@@ -185,8 +187,8 @@ async function plannerNode(state: AgentState): Promise<Partial<AgentState>> {
 - `AgentState.intent`: 结构化的意图信息
 
 #### 错误处理
-- 如果 DeepSeek API 调用失败，返回 `intent.action = 'unknown'`，并设置 `error`
-- 如果 JSON 解析失败，使用 LLM 的原始响应作为 fallback
+- 如果 LLM API 调用失败，返回 `intent.action = 'unknown'`，并设置 `error`
+- 如果 JSON 解析失败（chatWithJson 内部处理），使用降级策略返回默认意图
 
 #### 流转条件
 - **成功：** `intent.action !== 'unknown' && intent.confidence > 0.5`
@@ -426,8 +428,9 @@ async function criticNode(state: AgentState): Promise<Partial<AgentState>> {
 }
 `;
 
-  // 2. 调用 DeepSeek 进行审查（注意：这里审查的是"模拟结果"，实际应该审查真实图片）
+  // 2. 调用 LLM 进行审查（注意：这里审查的是"模拟结果"，实际应该审查真实图片）
   // 为了 MVP，我们简化处理：基于 intent.confidence 和随机因素决定
+  // 可选：使用 llmService.chatWithJson<CriticFeedback>(...) 进行真实审查
   const baseScore = state.intent.confidence;
   const randomFactor = Math.random() * 0.2; // 添加一些随机性
   const finalScore = Math.min(1.0, baseScore + randomFactor);
@@ -594,7 +597,11 @@ async function plannerNode(state: AgentState): Promise<Partial<AgentState>> {
     }
   }
 
-  // ... 调用 DeepSeek
+  // ... 调用 LLM 服务
+  const intent = await llmService.chatWithJson<IntentResult>(messages, {
+    temperature: 0.3,
+    jsonMode: true
+  });
 }
 ```
 
@@ -701,16 +708,85 @@ async function* executeWorkflowStream(
 - 每个会话使用独立的 `sessionId`，确保状态隔离
 - 同一会话的并发请求需要排队处理
 
-## 8. 性能优化
+## 8. 边界条件约束
 
-### 8.1 节点并行化
+### 8.1 输入验证边界
+
+#### 文本输入
+- **最小长度:** 1 字符
+- **最大长度:** 1000 字符（超出部分截断）
+- **空输入处理:** 返回 `INVALID_INPUT_EMPTY` 错误
+- **纯表情/符号:** 识别为 `INTENT_UNKNOWN`，返回友好提示
+
+#### 蒙版数据
+- **Base64 大小限制:** 最大 10MB
+- **坐标点数量限制:** 单条路径最多 10000 个点
+- **路径数量限制:** 单次请求最多 100 条路径
+- **格式验证:** 必须是有效的 Base64 编码的 PNG/JPG 图片
+
+#### 图片 URL
+- **协议限制:** 仅支持 `http://` 和 `https://`
+- **大小限制:** 建议图片尺寸不超过 4096x4096
+- **格式支持:** PNG, JPG, JPEG, WebP
+
+### 8.2 性能边界
+
+#### 节点超时时间
+- **Planner Node:** 10 秒（LLM API 调用）
+- **RAG Node:** 5 秒（向量检索）
+- **Executor Node:** 5 秒（Mock 延迟除外）
+- **Critic Node:** 8 秒（质量审查）
+
+#### 重试机制
+- **最大重试次数:** 3 次
+- **重试间隔:** 指数退避（5s, 10s, 20s）
+- **总超时时间:** 单个工作流最长 60 秒
+
+#### 并发控制
+- **单会话并发:** 同一会话同时只能执行一个工作流
+- **全局并发:** 最多支持 50 个并发会话
+- **队列长度:** 超出并发限制的请求进入队列，最多排队 100 个
+
+### 8.3 资源边界
+
+#### 内存限制
+- **AgentState 大小:** 单个状态对象不超过 5MB
+- **消息历史:** 最多保留最近 50 条消息
+- **UI 组件列表:** 最多 100 个组件
+
+#### 存储限制
+- **会话状态:** 内存存储，30 分钟无活动自动清理
+- **向量数据库:** LanceDB 数据文件大小建议不超过 100MB
+
+#### API 调用限制
+- **LLM API:** 遵循各提供商的速率限制（DeepSeek: 100 req/min, 阿里云: 根据配置）
+- **缓存策略:** 相同 Prompt 缓存 1 小时
+
+### 8.4 业务逻辑边界
+
+#### 意图识别
+- **置信度阈值:** 最低 0.5，低于此值视为 `unknown`
+- **降级策略:** LLM 调用失败时使用关键词匹配降级
+
+#### 质量审查
+- **通过阈值:** 质量分数 ≥ 0.7
+- **重试条件:** 分数 < 0.6 且重试次数 < 3
+- **最大重试次数:** 3 次
+
+#### 历史记录
+- **消息历史:** 最多 50 条
+- **操作历史:** 前端画布历史最多 50 条（前端控制）
+
+## 9. 性能优化
+
+### 9.1 节点并行化
 - RAG 检索可以与其他轻量级操作并行（未来优化）
 
-### 8.2 缓存策略
+### 9.2 缓存策略
 - 相同 Prompt 的检索结果可以缓存
 - 相同 seed 的图片 URL 可以复用
 
-### 8.3 超时控制
+### 9.3 超时控制
 - 每个节点设置超时时间（Planner: 10s, Executor: 5s, Critic: 8s）
 - 超时后进入错误处理流程
 
@@ -789,7 +865,7 @@ interface AgentState {
    }
    ```
 
-2. **调用 DeepSeek API 进行意图解析**
+2. **调用 LLM 服务进行意图解析**
    ```typescript
    const systemPrompt = `
    你是一个 AI 创作助手，负责解析用户的创作意图。
@@ -806,14 +882,16 @@ interface AgentState {
    }
    `;
    
-   const response = await deepSeek.chat.completions.create({
-     model: "deepseek-chat",
-     messages: [
+   const response = await llmService.chatWithJson<IntentResult>(
+     [
        { role: "system", content: systemPrompt },
        { role: "user", content: userMessage }
      ],
-     response_format: { type: "json_object" }
-   });
+     {
+       temperature: 0.3,
+       jsonMode: true
+     }
+   );
    ```
 
 3. **结构化输出验证**
@@ -844,7 +922,7 @@ interface AgentState {
 ```
 
 #### 错误处理
-- DeepSeek API 调用失败：重试 2 次，失败后返回错误状态
+- LLM API 调用失败：重试 2 次，失败后返回错误状态
 - JSON 解析失败：使用 LLM 重新解析或返回默认意图（generate_image）
 - 无效输入（空消息、纯表情）：返回友好的错误提示
 
@@ -1206,7 +1284,7 @@ const contextMessages = [
 ### 7.2 缓存策略
 
 - RAG 检索结果缓存（相同关键词 5 分钟内复用）
-- DeepSeek API 响应缓存（相同 Prompt 缓存 1 小时）
+- LLM API 响应缓存（相同 Prompt 缓存 1 小时）
 
 ## 8. 测试验证标准
 

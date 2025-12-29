@@ -210,7 +210,7 @@ interface ErrorEvent {
 
 | 错误代码 | 说明 | 可恢复 | 可重试 |
 |---------|------|--------|--------|
-| `DEEPSEEK_API_ERROR` | DeepSeek API 调用失败 | 是 | 是 |
+| `LLM_API_ERROR` | LLM API 调用失败 | 是 | 是 |
 | `INVALID_INPUT` | 用户输入无效 | 是 | 否 |
 | `MASK_DATA_MISSING` | 局部重绘缺少蒙版数据 | 是 | 否 |
 | `EXECUTION_TIMEOUT` | 执行超时 | 是 | 是 |
@@ -222,7 +222,7 @@ interface ErrorEvent {
 
 ```
 event: error
-data: {"type":"error","timestamp":1709888900000,"data":{"code":"DEEPSEEK_API_ERROR","message":"AI 服务暂时不可用，请稍后重试","node":"planner","recoverable":true,"retryable":true,"retryAfter":5}}
+data: {"type":"error","timestamp":1709888900000,"data":{"code":"LLM_API_ERROR","message":"AI 服务暂时不可用，请稍后重试","node":"planner","recoverable":true,"retryable":true,"retryAfter":5}}
 ```
 
 **前端处理：**
@@ -679,4 +679,47 @@ curl -N -X POST http://localhost:3000/api/agent/chat \
   -H "Accept: text/event-stream" \
   -d '{"text":"生成一只猫"}'
 ```
+
+## 9. 边界条件约束
+
+### 9.1 连接管理边界
+
+#### 连接超时
+- **总超时时间:** 5 分钟（300 秒）
+- **心跳间隔:** 30 秒
+- **连接空闲超时:** 10 分钟无活动自动断开
+
+#### 并发连接
+- **单 IP 最大连接数:** 10 个
+- **全局最大连接数:** 100 个
+- **超出限制:** 返回 429 Too Many Requests
+
+### 9.2 事件推送边界
+
+#### 事件大小
+- **单个事件数据:** 最大 1MB
+- **批量事件:** 最多 10 个事件/批次
+
+#### 推送频率
+- **思考日志:** 每个节点最多推送 5 条
+- **GenUI 组件:** 单次工作流最多 20 个组件
+- **错误事件:** 单次工作流最多 3 条
+
+### 9.3 重连机制边界
+
+#### 重连策略
+- **最大重连次数:** 3 次
+- **重连间隔:** 指数退避（2s, 4s, 8s）
+- **重连超时:** 每次重连最多等待 10 秒
+
+### 9.4 数据验证边界
+
+#### 请求数据
+- **文本长度:** 1-1000 字符
+- **蒙版 Base64:** 最大 10MB
+- **会话 ID:** 最大 128 字符
+
+#### 响应数据
+- **事件流总大小:** 建议不超过 10MB
+- **组件 JSON:** 单个组件 props 不超过 500KB
 

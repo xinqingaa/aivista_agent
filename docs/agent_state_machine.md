@@ -55,7 +55,7 @@ graph LR
     subgraph PlannerNode [Planner Node 内部流程]
         P1[接收用户输入] --> P2{是否有蒙版数据?}
         P2 -->|是| P3[强制设置为 inpainting]
-        P2 -->|否| P4[调用 DeepSeek API]
+        P2 -->|否| P4[调用 LLM 服务]
         P3 --> P4
         P4 --> P5[解析 JSON 响应]
         P5 --> P6[验证意图结构]
@@ -169,7 +169,7 @@ classDiagram
 graph TD
     PInput[Planner 输入] --> PCheck{有蒙版数据?}
     PCheck -->|是| PForceInpaint[强制 action=inpainting]
-    PCheck -->|否| PCallAPI[调用 DeepSeek]
+    PCheck -->|否| PCallAPI[调用 LLM 服务]
     PForceInpaint --> PCallAPI
     PCallAPI --> PParse[解析 JSON]
     PParse --> PValidate{验证成功?}
@@ -449,7 +449,7 @@ sequenceDiagram
     U->>F: "生成一只赛博朋克风格的猫"
     F->>P: 发送请求
     P->>F: thought_log: 正在分析意图...
-    P->>P: 调用 DeepSeek API
+    P->>P: 调用 LLM 服务
     P->>F: thought_log: 已识别意图: generate_image
     P->>R: 传递 IntentResult (style: "cyberpunk")
     

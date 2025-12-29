@@ -40,7 +40,7 @@
 
 ### 2.1 意图识别 (The Brain - Real)
 - **输入:** 用户文本。
-- **处理:** 调用 DeepSeek API。
+- **处理:** 调用 LLM API（通过 LLM 服务适配层，支持多模型切换）。
 - **输出:** 结构化 JSON。
     - 示例: `{ "action": "generate_image", "subject": "cat", "style": "cyberpunk" }`
     - 示例: `{ "action": "inpainting", "mask_detected": true, "prompt": "mechanical helmet" }`
@@ -49,7 +49,7 @@
 - **存入:** 项目启动时，自动写入 5 条风格数据到 LanceDB：
     - "Cyberpunk" -> Prompt: "neon lights, high tech, low life, dark city background"
     - "Watercolor" -> Prompt: "soft pastel colors, artistic fluidity, paper texture"
-- **读取:** 当用户提到相关词汇时，RAG 节点必须检索出对应的 Prompt 拼接到 DeepSeek 的上下文中。
+- **读取:** 当用户提到相关词汇时，RAG 节点必须检索出对应的 Prompt 拼接到 LLM 的上下文中。
 
 ### 2.3 伪·生图引擎 (The Mock Engine)
 - **接口:** `generateImage(prompt)`

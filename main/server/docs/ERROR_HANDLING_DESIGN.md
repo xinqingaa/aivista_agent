@@ -51,9 +51,9 @@ enum ErrorCategory {
 
 | 错误代码 | 类别 | 级别 | 说明 | 可恢复 | 可重试 |
 |---------|------|------|------|--------|--------|
-| `DEEPSEEK_API_ERROR` | API_ERROR | ERROR | DeepSeek API 调用失败 | 是 | 是 |
-| `DEEPSEEK_RATE_LIMIT` | API_ERROR | WARNING | DeepSeek API 速率限制 | 是 | 是 |
-| `DEEPSEEK_TIMEOUT` | API_ERROR | ERROR | DeepSeek API 超时 | 是 | 是 |
+| `LLM_API_ERROR` | API_ERROR | ERROR | LLM API 调用失败 | 是 | 是 |
+| `LLM_RATE_LIMIT` | API_ERROR | WARNING | LLM API 速率限制 | 是 | 是 |
+| `LLM_TIMEOUT` | API_ERROR | ERROR | LLM API 超时 | 是 | 是 |
 | `INVALID_INPUT_EMPTY` | VALIDATION_ERROR | WARNING | 用户输入为空 | 是 | 否 |
 | `INVALID_INPUT_FORMAT` | VALIDATION_ERROR | WARNING | 输入格式无效 | 是 | 否 |
 | `MASK_DATA_MISSING` | BUSINESS_ERROR | WARNING | 局部重绘缺少蒙版数据 | 是 | 否 |
@@ -163,7 +163,7 @@ const ERROR_DEFINITIONS: Record<string, {
   retryAfter?: number;
   maxRetries?: number;
 }> = {
-  DEEPSEEK_API_ERROR: {
+  LLM_API_ERROR: {
     category: ErrorCategory.API_ERROR,
     level: ErrorLevel.ERROR,
     message: 'AI 服务暂时不可用，请稍后重试',
@@ -172,7 +172,7 @@ const ERROR_DEFINITIONS: Record<string, {
     retryAfter: 5,
     maxRetries: 3
   },
-  DEEPSEEK_RATE_LIMIT: {
+  LLM_RATE_LIMIT: {
     category: ErrorCategory.API_ERROR,
     level: ErrorLevel.WARNING,
     message: '请求过于频繁，请稍后再试',
@@ -180,6 +180,15 @@ const ERROR_DEFINITIONS: Record<string, {
     retryable: true,
     retryAfter: 60,
     maxRetries: 1
+  },
+  LLM_TIMEOUT: {
+    category: ErrorCategory.API_ERROR,
+    level: ErrorLevel.ERROR,
+    message: 'AI 服务响应超时，请重试',
+    recoverable: true,
+    retryable: true,
+    retryAfter: 3,
+    maxRetries: 2
   },
   INVALID_INPUT_EMPTY: {
     category: ErrorCategory.VALIDATION_ERROR,
@@ -203,15 +212,14 @@ const ERROR_DEFINITIONS: Record<string, {
 
 ### 4.1 API 调用失败处理
 
-#### DeepSeek API 错误
+#### LLM API 错误
 
 ```typescript
-class DeepSeekService {
+class LlmService {
   async chat(params: ChatParams, retryCount = 0): Promise<ChatResponse> {
     try {
-      const response = await this.client.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: params.messages,
+      // 使用 ILlmService 接口，支持多模型切换
+      const response = await this.llmService.chat(params.messages, {
         temperature: params.temperature
       });
       return response;
@@ -219,7 +227,7 @@ class DeepSeekService {
       // 判断错误类型
       if (error.status === 429) {
         // 速率限制
-        throw ErrorFactory.createError('DEEPSEEK_RATE_LIMIT', {
+        throw ErrorFactory.createError('LLM_RATE_LIMIT', {
           details: error.message,
           metadata: { retryCount }
         });
@@ -229,7 +237,7 @@ class DeepSeekService {
           await this.delay(5 * (retryCount + 1)); // 指数退避
           return this.chat(params, retryCount + 1);
         }
-        throw ErrorFactory.createError('DEEPSEEK_API_ERROR', {
+        throw ErrorFactory.createError('LLM_API_ERROR', {
           details: error.message,
           metadata: { retryCount }
         });
@@ -239,13 +247,13 @@ class DeepSeekService {
           await this.delay(3);
           return this.chat(params, retryCount + 1);
         }
-        throw ErrorFactory.createError('DEEPSEEK_TIMEOUT', {
+        throw ErrorFactory.createError('LLM_TIMEOUT', {
           details: error.message,
           metadata: { retryCount }
         });
       } else {
         // 其他错误
-        throw ErrorFactory.createError('DEEPSEEK_API_ERROR', {
+        throw ErrorFactory.createError('LLM_API_ERROR', {
           details: error.message
         });
       }
@@ -264,11 +272,11 @@ class DeepSeekService {
 class PlannerNode {
   async execute(state: AgentState): Promise<Partial<AgentState>> {
     try {
-      // 尝试调用 DeepSeek
-      const response = await this.deepSeekService.chat(/* ... */);
+      // 尝试调用 LLM 服务
+      const response = await this.llmService.chat(/* ... */);
       return this.parseResponse(response);
     } catch (error) {
-      if (error.retryable && error.code === 'DEEPSEEK_API_ERROR') {
+      if (error.retryable && error.code === 'LLM_API_ERROR') {
         // 如果重试失败，使用降级策略
         return this.fallbackIntentParsing(state);
       }
@@ -594,9 +602,9 @@ class AgentWorkflow {
 
 ```typescript
 const ERROR_MESSAGES: Record<string, string> = {
-  DEEPSEEK_API_ERROR: 'AI 服务暂时不可用，请稍后重试',
-  DEEPSEEK_RATE_LIMIT: '请求过于频繁，请稍后再试',
-  DEEPSEEK_TIMEOUT: 'AI 服务响应超时，请重试',
+  LLM_API_ERROR: 'AI 服务暂时不可用，请稍后重试',
+  LLM_RATE_LIMIT: '请求过于频繁，请稍后再试',
+  LLM_TIMEOUT: 'AI 服务响应超时，请重试',
   INVALID_INPUT_EMPTY: '请输入您的需求',
   INVALID_INPUT_FORMAT: '输入格式不正确，请检查后重试',
   MASK_DATA_MISSING: '要进行局部修改，请先在图片上绘制要修改的区域',
@@ -714,15 +722,15 @@ class ErrorStatistics {
 
 ```typescript
 describe('Error Handling', () => {
-  it('should handle DeepSeek API failure with retry', async () => {
+  it('should handle LLM API failure with retry', async () => {
     // Mock API 失败
-    jest.spyOn(deepSeekService, 'chat')
+    jest.spyOn(llmService, 'chat')
       .mockRejectedValueOnce(new Error('API Error'))
       .mockResolvedValueOnce({ content: 'success' });
 
     const result = await plannerNode.execute(mockState);
     expect(result.intent).toBeDefined();
-    expect(deepSeekService.chat).toHaveBeenCalledTimes(2);
+    expect(llmService.chat).toHaveBeenCalledTimes(2);
   });
 
   it('should handle missing mask data gracefully', async () => {

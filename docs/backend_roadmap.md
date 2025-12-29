@@ -3,9 +3,9 @@
 **目标：** 构建基于 NestJS + LangGraph 的 Agent 编排服务。
 
 ## 📅 里程碑 1：基础通路 (Baseline)
-- **任务:** 搭建 NestJS + SSE (Server-Sent Events) + DeepSeek 直连。
-- **验证:** 前端发送 "hello"，后端调用 DeepSeek，前端能看到流式回复。
-- **产出:** `AgentController` (处理 SSE), `DeepSeekService` (基础调用).
+- **任务:** 搭建 NestJS + SSE (Server-Sent Events) + LLM 服务。
+- **验证:** 前端发送 "hello"，后端调用 LLM 服务，前端能看到流式回复。
+- **产出:** `AgentController` (处理 SSE), `LlmService` (LLM 服务适配层，参考 `LLM_SERVICE_DESIGN.md`).
 
 ## 📅 里程碑 2：大脑构建 (The Brain)
 - **任务:** 引入 `LangGraph`。

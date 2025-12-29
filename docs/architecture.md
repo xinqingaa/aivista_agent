@@ -4,13 +4,13 @@
 AiVista 是一个基于 Agent（智能体）的 AI 创作平台，核心特色是“智能画布 (Smart Canvas)”。
 - **前端 (Frontend):** 使用 Flutter (移动端)。负责渲染 GenUI（生成式界面）并处理用户的绘画手势。
 - **后端 (Backend):** 使用 NestJS + LangGraph.js。作为系统的“大脑”，负责编排 AI Agent 的工作流。
-- **AI 模型:** 使用 DeepSeek-V3 (通过兼容 OpenAI SDK 调用)。
+- **AI 模型:** 支持多 LLM 模型切换（DeepSeek、阿里云通义千问、OpenAI 等），通过 LLM 服务适配层统一接口调用。详见 `main/server/docs/LLM_SERVICE_DESIGN.md`。
 
 ## 2. 核心业务流程 (Core Flows)
 
 ### 2.1 Agent 工作流 (后端核心)
 我们使用 `LangGraph` 实现一个有状态的图结构 (State Graph)：
-1.  **规划节点 (Planner Node):** 接收用户输入 -> 调用 DeepSeek -> 分析用户意图 (例如：“生成一张图”、“修改选区”、“风格迁移”)。
+1.  **规划节点 (Planner Node):** 接收用户输入 -> 调用 LLM 服务 -> 分析用户意图 (例如：“生成一张图”、“修改选区”、“风格迁移”)。
 2.  **RAG 检索节点 (Mocked for MVP):** 搜索本地向量数据库 (LanceDB)，查找对应的风格提示词 (例如：搜索“赛博朋克”返回具体的 Prompt 关键词)。
 3.  **执行节点 (Executor Node - Mocked Image Gen):**
     - **注意：** 为了节省成本，此处**不**调用真实的 DALL-E/Midjourney API。

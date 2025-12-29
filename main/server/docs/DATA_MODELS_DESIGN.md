@@ -111,7 +111,7 @@ interface Intent {
   subject?: string;            // 主要对象
   style?: string;              // 风格关键词
   confidence: number;          // 置信度 (0-1)
-  rawResponse: string;         // DeepSeek 原始响应
+  rawResponse: string;         // LLM 原始响应
   reasoning?: string;          // 分析理由
   parameters?: {               // 提取的参数（如果 action 是 adjust_parameters）
     styleStrength?: number;
