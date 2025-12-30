@@ -1,0 +1,31 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'message.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+Message _$MessageFromJson(Map<String, dynamic> json) => Message(
+  id: json['id'] as String,
+  role: $enumDecode(_$MessageRoleEnumMap, json['role']),
+  content: json['content'] as String,
+  timestamp: json['timestamp'] == null
+      ? null
+      : DateTime.parse(json['timestamp'] as String),
+  metadata: json['metadata'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$MessageToJson(Message instance) => <String, dynamic>{
+  'id': instance.id,
+  'role': _$MessageRoleEnumMap[instance.role]!,
+  'content': instance.content,
+  'timestamp': instance.timestamp.toIso8601String(),
+  'metadata': instance.metadata,
+};
+
+const _$MessageRoleEnumMap = {
+  MessageRole.user: 'user',
+  MessageRole.assistant: 'assistant',
+  MessageRole.system: 'system',
+};

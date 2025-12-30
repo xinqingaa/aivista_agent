@@ -34,6 +34,28 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  
+  # SSE 客户端（用于处理 Server-Sent Events）
+  # 注意：如果 flutter_client_sse 不存在，使用 http 包手动实现 SSE 解析
+  http: ^1.2.0
+  
+  # 状态管理
+  provider: ^6.1.1
+  
+  # HTTP 请求（用于非 SSE 的普通请求）
+  dio: ^5.4.0
+  
+  # 本地存储
+  shared_preferences: ^2.2.2
+  
+  # 生成唯一 ID
+  uuid: ^4.3.0
+  
+  # JSON 序列化
+  json_annotation: ^4.9.0
+  
+  # 向量数学（用于坐标转换）
+  vector_math: ^2.1.4
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +67,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  
+  # JSON 序列化代码生成
+  json_serializable: ^6.7.1
+  build_runner: ^2.4.7
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

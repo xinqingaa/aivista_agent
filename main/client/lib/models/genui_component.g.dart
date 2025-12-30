@@ -1,0 +1,89 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'genui_component.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+GenUIComponent _$GenUIComponentFromJson(Map<String, dynamic> json) =>
+    GenUIComponent(
+      id: json['id'] as String?,
+      widgetType: $enumDecode(_$WidgetTypeEnumMap, json['widgetType']),
+      props: json['props'] as Map<String, dynamic>,
+      updateMode: $enumDecodeNullable(_$UpdateModeEnumMap, json['updateMode']),
+      targetId: json['targetId'] as String?,
+      timestamp: (json['timestamp'] as num?)?.toInt(),
+    );
+
+Map<String, dynamic> _$GenUIComponentToJson(GenUIComponent instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'widgetType': _$WidgetTypeEnumMap[instance.widgetType]!,
+      'props': instance.props,
+      'updateMode': _$UpdateModeEnumMap[instance.updateMode],
+      'targetId': instance.targetId,
+      'timestamp': instance.timestamp,
+    };
+
+const _$WidgetTypeEnumMap = {
+  WidgetType.smartCanvas: 'SmartCanvas',
+  WidgetType.agentMessage: 'AgentMessage',
+  WidgetType.actionPanel: 'ActionPanel',
+};
+
+const _$UpdateModeEnumMap = {
+  UpdateMode.append: 'append',
+  UpdateMode.update: 'update',
+  UpdateMode.replace: 'replace',
+};
+
+ActionItem _$ActionItemFromJson(Map<String, dynamic> json) => ActionItem(
+  id: json['id'] as String,
+  label: json['label'] as String,
+  type: json['type'] as String,
+  buttonType: json['buttonType'] as String?,
+  min: (json['min'] as num?)?.toDouble(),
+  max: (json['max'] as num?)?.toDouble(),
+  step: (json['step'] as num?)?.toDouble(),
+  value: json['value'],
+  unit: json['unit'] as String?,
+  options: (json['options'] as List<dynamic>?)
+      ?.map((e) => SelectOption.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  placeholder: json['placeholder'] as String?,
+  inputType: json['inputType'] as String?,
+  disabled: json['disabled'] as bool?,
+  tooltip: json['tooltip'] as String?,
+);
+
+Map<String, dynamic> _$ActionItemToJson(ActionItem instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'label': instance.label,
+      'type': instance.type,
+      'buttonType': instance.buttonType,
+      'min': instance.min,
+      'max': instance.max,
+      'step': instance.step,
+      'value': instance.value,
+      'unit': instance.unit,
+      'options': instance.options,
+      'placeholder': instance.placeholder,
+      'inputType': instance.inputType,
+      'disabled': instance.disabled,
+      'tooltip': instance.tooltip,
+    };
+
+SelectOption _$SelectOptionFromJson(Map<String, dynamic> json) => SelectOption(
+  label: json['label'] as String,
+  value: json['value'],
+  disabled: json['disabled'] as bool?,
+);
+
+Map<String, dynamic> _$SelectOptionToJson(SelectOption instance) =>
+    <String, dynamic>{
+      'label': instance.label,
+      'value': instance.value,
+      'disabled': instance.disabled,
+    };
