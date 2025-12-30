@@ -1,25 +1,60 @@
 import { Controller, Get, Post, Body, Res, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { IsString, IsOptional, ValidateNested, IsObject } from 'class-validator';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiResponse, 
+  ApiBody, 
+  ApiProperty, 
+  ApiPropertyOptional 
+} from '@nestjs/swagger';
 import { AgentService } from './agent.service';
 import { AgentState } from './interfaces/agent-state.interface';
 
+/**
+ * 蒙版数据 DTO
+ */
 class MaskDataDto {
+  @ApiProperty({
+    description: 'Base64 编码的蒙版图片数据',
+    example: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  })
   @IsString()
   base64: string;
 
+  @ApiProperty({
+    description: '原图 URL',
+    example: 'https://example.com/image.jpg',
+  })
   @IsString()
   imageUrl: string;
 }
 
+/**
+ * 对话请求 DTO
+ */
 class ChatRequestDto {
+  @ApiProperty({
+    description: '用户输入的文本',
+    example: '生成一只赛博朋克风格的猫',
+    required: true,
+  })
   @IsString()
   text: string;
 
+  @ApiPropertyOptional({
+    description: '蒙版数据，用于局部重绘（inpainting）',
+    type: MaskDataDto,
+  })
   @IsOptional()
   @IsObject()
   maskData?: MaskDataDto;
 
+  @ApiPropertyOptional({
+    description: '会话 ID，用于多轮对话',
+    example: 'session_1234567890',
+  })
   @IsOptional()
   @IsString()
   sessionId?: string;
@@ -31,6 +66,7 @@ class ChatRequestDto {
  * 路由前缀: /api/agent
  * 调用顺序: POST /api/agent/chat → AgentController.chat() → AgentService.executeWorkflow() → SSE 流式推送
  */
+@ApiTags('Agent')
 @Controller('api/agent')
 export class AgentController {
   private readonly logger = new Logger(AgentController.name);
@@ -43,6 +79,22 @@ export class AgentController {
    * 用于浏览器访问时显示 API 使用说明，避免 404 错误
    */
   @Get()
+  @ApiOperation({ 
+    summary: '获取 API 信息',
+    description: '返回 API 使用说明和健康状态，用于浏览器访问时显示信息' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'API 信息',
+    schema: {
+      type: 'object',
+      properties: {
+        service: { type: 'string', example: 'AiVista Agent API' },
+        version: { type: 'string', example: '1.0.0' },
+        status: { type: 'string', example: 'running' },
+      },
+    },
+  })
   getApiInfo() {
     return {
       service: 'AiVista Agent API',
@@ -85,8 +137,97 @@ export class AgentController {
    * 4. 调用 AgentService.executeWorkflow() 执行工作流
    * 5. 通过 for await 循环接收工作流产生的事件
    * 6. 将事件以 SSE 格式推送给客户端
+   * 
+   * 注意：此接口返回 Server-Sent Events (SSE) 流式响应，Swagger UI 无法直接测试。
+   * 请使用 Apifox、curl 或其他支持 SSE 的工具进行测试。
    */
   @Post('chat')
+  @ApiOperation({ 
+    summary: 'Agent 对话接口（SSE 流式响应）',
+    description: `接收用户输入，执行 Agent 工作流，通过 SSE 流式推送执行过程。
+    
+**工作流步骤：**
+1. Planner Node: 识别用户意图（generate_image/inpainting/adjust_parameters）
+2. Executor Node: 执行任务（如生成图片）
+3. 流式推送思考日志、GenUI 组件和结果
+
+**响应事件类型：**
+- \`connection\`: 连接确认
+- \`thought_log\`: 思考日志（Agent 执行过程）
+- \`gen_ui_component\`: GenUI 组件（前端渲染指令）
+- \`error\`: 错误信息
+- \`stream_end\`: 流结束
+
+**测试方法：**
+- 使用 Apifox 的"实时响应"功能查看流式数据
+- 或使用 curl: \`curl -N -X POST http://localhost:3000/api/agent/chat -H "Content-Type: application/json" -H "Accept: text/event-stream" -d '{"text":"生成一只猫"}'\``,
+  })
+  @ApiBody({ 
+    type: ChatRequestDto,
+    description: '对话请求体',
+    examples: {
+      basic: {
+        summary: '基础示例',
+        value: {
+          text: '生成一只赛博朋克风格的猫',
+        },
+      },
+      withMask: {
+        summary: '带蒙版数据（局部重绘）',
+        value: {
+          text: '将背景改为星空',
+          maskData: {
+            base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            imageUrl: 'https://example.com/image.jpg',
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'SSE 流式响应',
+    headers: {
+      'Content-Type': {
+        description: 'text/event-stream',
+        schema: { type: 'string' },
+      },
+      'Cache-Control': {
+        description: 'no-cache',
+        schema: { type: 'string' },
+      },
+      'Connection': {
+        description: 'keep-alive',
+        schema: { type: 'string' },
+      },
+    },
+    content: {
+      'text/event-stream': {
+        schema: {
+          type: 'string',
+          example: `event: connection
+data: {"status":"connected","sessionId":"session_1234567890"}
+
+event: thought_log
+data: {"type":"thought_log","timestamp":1234567890,"data":{"node":"planner","message":"已识别意图：generate_image"}}
+
+event: gen_ui_component
+data: {"type":"gen_ui_component","timestamp":1234567890,"data":{"widgetType":"SmartCanvas","props":{"imageUrl":"https://picsum.photos/800/600"}}}
+
+event: stream_end
+data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1234567890","summary":"任务完成"}}`,
+        },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '请求参数错误',
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: '服务器内部错误',
+  })
   async chat(@Body() request: ChatRequestDto, @Res() response: Response) {
     // 设置 SSE 响应头
     response.setHeader('Content-Type', 'text/event-stream');

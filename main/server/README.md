@@ -64,26 +64,37 @@ curl -N -X POST http://localhost:3000/api/agent/chat \
 
 #### 使用 Apifox 测试：
 
-1. 创建新请求
-2. 方法：POST
-3. URL：`http://localhost:3000/api/agent/chat`
-4. Headers：
-   - `Content-Type: application/json`
-   - `Accept: text/event-stream`
-5. Body（JSON）：
-```json
-{
-  "text": "生成一只赛博朋克风格的猫"
-}
-```
+详细步骤请参考：[docs/APIFOX_IMPORT.md](docs/APIFOX_IMPORT.md) 和 [docs/SSE_DEBUG_GUIDE.md](docs/SSE_DEBUG_GUIDE.md)
 
-6. 点击发送，应该能看到流式响应事件。
+## API 文档
+
+### Swagger UI
+
+启动服务后，访问 Swagger UI 查看完整的 API 文档：
+
+- **Swagger UI**: http://localhost:3000/api-docs
+- **OpenAPI JSON**: http://localhost:3000/api-docs-json
+
+### 导入到 Apifox
+
+1. 访问 `http://localhost:3000/api-docs-json` 获取 OpenAPI JSON
+2. 在 Apifox 中选择"导入" → "OpenAPI/Swagger"
+3. 粘贴 JSON 或使用 URL 导入
+4. 配置环境变量：`baseUrl = http://localhost:3000`
+
+详细步骤请参考：[docs/APIFOX_IMPORT.md](docs/APIFOX_IMPORT.md)
 
 ## API 端点
+
+### GET /api/agent
+
+获取 API 使用说明和健康状态。
 
 ### POST /api/agent/chat
 
 SSE 流式端点，接收用户输入，返回 Agent 处理结果。
+
+**调试方法**：请参考 [docs/SSE_DEBUG_GUIDE.md](docs/SSE_DEBUG_GUIDE.md)
 
 **请求体：**
 ```json

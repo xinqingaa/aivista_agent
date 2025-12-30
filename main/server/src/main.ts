@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 /**
  * 应用启动函数
@@ -34,11 +35,29 @@ async function bootstrap() {
     }),
   );
 
+  // 配置 Swagger 文档
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('AiVista Agent API')
+    .setDescription('AiVista AI Agent 后端 API 文档。支持 SSE 流式响应，用于实时推送 Agent 工作流执行过程。')
+    .setVersion('1.0.0')
+    .addTag('Agent', 'Agent 工作流相关接口')
+    .addServer('http://localhost:3000', '开发环境')
+    .build();
+  
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api-docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true, // 保持授权信息
+    },
+  });
+
     const port = configService.get('PORT') || 3000;
     await app.listen(port);
     
     console.log(`🚀 AiVista Server is running on: http://localhost:${port}`);
     console.log(`📡 SSE endpoint: http://localhost:${port}/api/agent/chat`);
+    console.log(`📚 Swagger UI: http://localhost:${port}/api-docs`);
+    console.log(`📄 OpenAPI JSON: http://localhost:${port}/api-docs-json`);
     console.log(`\n⚠️  请确保已配置 .env 文件，并填写 DASHSCOPE_API_KEY`);
   } catch (error) {
     console.error('❌ 启动失败:', error.message);
