@@ -97,7 +97,3 @@ todos:
 4. 审查`SMART_CANVAS_DESIGN.md` - 补充画布交互边界（缩放范围、历史记录大小等）
 5. 审查`STATE_MANAGEMENT_DESIGN.md` - 补充状态管理边界
 6. 审查`GENUI_RENDERER_DESIGN.md` - 补充组件渲染边界
-
-### 步骤3：环境变量清单
-
-1. 创建环境变量清单（包含所有配置项）
