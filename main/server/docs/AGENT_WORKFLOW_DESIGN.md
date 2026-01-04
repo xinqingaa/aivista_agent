@@ -1,4 +1,4 @@
-# Agent 工作流详细设计文档 (Agent Workflow Design) 第二版
+# Agent 工作流详细设计文档 (Agent Workflow Design) 
 
 ## 1. 目标
 

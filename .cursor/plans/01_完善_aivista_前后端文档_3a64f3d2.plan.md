@@ -1,42 +1,3 @@
----
-name: 完善 AiVista 前后端文档
-overview: 基于现有产品文档，完善前后端详细设计文档，重点关注智能画布交互逻辑、多模态 Agent 编排、流式 UI 生成三个核心技术点的实现细节。
-todos:
-  - id: backend_workflow
-    content: 创建后端 Agent 工作流详细设计文档 (AGENT_WORKFLOW_DESIGN.md)
-    status: completed
-  - id: backend_sse
-    content: 创建后端 SSE 流式通信详细设计文档 (SSE_STREAMING_DESIGN.md)
-    status: completed
-  - id: backend_errors
-    content: 创建后端错误处理设计文档 (ERROR_HANDLING_DESIGN.md)
-    status: completed
-  - id: backend_models
-    content: 创建后端数据模型设计文档 (DATA_MODELS_DESIGN.md)
-    status: completed
-  - id: frontend_canvas
-    content: 创建前端智能画布详细设计文档 (SMART_CANVAS_DESIGN.md)
-    status: completed
-  - id: frontend_genui
-    content: 创建前端 GenUI 渲染器设计文档 (GENUI_RENDERER_DESIGN.md)
-    status: completed
-  - id: frontend_state
-    content: 创建前端状态管理设计文档 (STATE_MANAGEMENT_DESIGN.md)
-    status: completed
-  - id: tech_coordinates
-    content: 创建画布坐标系统技术文档 (canvas_coordinate_system.md)
-    status: completed
-  - id: tech_state_machine
-    content: 创建 Agent 状态机可视化文档 (agent_state_machine.md)
-    status: completed
-  - id: update_readmes
-    content: 更新前后端的 PROMPT_README.md 文件
-    status: completed
-    dependencies:
-      - backend_workflow
-      - frontend_canvas
----
-
 # AiVista 文档完善计划
 
 ## 目标
@@ -155,5 +116,3 @@ Agent 状态机的可视化设计：
 - 条件分支的详细说明
 
 ## 实施顺序
-
-1. **第一阶段**：完善后端核心设计文档（Agent 工作流、SSE 流式、数据模型）

@@ -3,6 +3,8 @@ import 'package:aivista_client/models/genui_component.dart';
 import 'package:aivista_client/models/mask_data.dart';
 import 'package:aivista_client/app/genui/widgets/agent_message_widget.dart';
 import 'package:aivista_client/app/genui/widgets/action_panel_widget.dart';
+
+import 'widgets/smart_canvas_widget.dart';
 // import 'package:aivista_client/app/genui/widgets/smart_canvas_widget.dart'; // 暂时注释，使用 NetworkImage 代替
 
 /// GenUI 渲染器

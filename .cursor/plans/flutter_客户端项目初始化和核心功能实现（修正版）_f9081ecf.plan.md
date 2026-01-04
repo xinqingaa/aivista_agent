@@ -382,6 +382,3 @@ class ChatService {
 11. 创建主页面
 
 ## 注意事项
-
-1. **SSE 实现**：优先使用 `flutter_client_sse`，如果不可用，需要手动实现或使用替代方案
-2. **POST 请求**：后端 SSE 端点使用 POST 方法，需要确保 `flutter_client_sse` 支持 POST
