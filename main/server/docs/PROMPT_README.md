@@ -18,11 +18,17 @@ src/
 │   │   ├── rag.node.ts
 │   │   ├── executor.node.ts
 │   │   └── critic.node.ts
+│   ├── interfaces/              # 接口定义
+│   │   └── agent-state.interface.ts
 │   └── graph/                   # 状态图定义
 │       └── agent.graph.ts
 ├── knowledge/                   # 知识库模块
 │   ├── knowledge.module.ts
-│   └── knowledge.service.ts     # LanceDB 封装
+│   ├── knowledge.service.ts     # LanceDB 封装
+│   ├── services/                # 服务
+│   │   └── embedding.service.ts # 向量嵌入服务
+│   └── data/                    # 初始化数据
+│       └── initial-styles.ts    # 默认风格数据
 ├── common/                      # 共享模块
 │   ├── types/                   # 类型定义
 │   │   ├── agent-state.interface.ts
@@ -74,6 +80,10 @@ ALIYUN_MODEL_NAME=qwen-turbo
 
 # 温度参数（可选，默认: 0.3）
 ALIYUN_TEMPERATURE=0.3
+
+# Embedding 模型名称（可选，默认: text-embedding-v1）
+# 可选值: text-embedding-v1, text-embedding-v2, text-embedding-v3, text-embedding-v4, multimodal-embedding-v1
+ALIYUN_EMBEDDING_MODEL=text-embedding-v1
 ```
 
 #### DeepSeek 配置（LLM_PROVIDER=deepseek 时使用）
@@ -107,6 +117,24 @@ OPENAI_MODEL_NAME=gpt-3.5-turbo
 # 温度参数（可选，默认: 0.3）
 OPENAI_TEMPERATURE=0.3
 ```
+
+### Embedding 服务配置（可选）
+
+```bash
+# Embedding 提供商选择（可选，默认: 使用 LLM_PROVIDER 的值）
+# 可选值: 'aliyun' | 'openai' | 'deepseek'
+# 如果未设置，将使用 LLM_PROVIDER 的值
+EMBEDDING_PROVIDER=aliyun
+
+# OpenAI Embedding 模型（EMBEDDING_PROVIDER=openai 时使用）
+# 可选，默认: text-embedding-ada-002
+EMBEDDING_MODEL=text-embedding-ada-002
+```
+
+**说明：**
+- 如果 `EMBEDDING_PROVIDER` 未设置，将自动使用 `LLM_PROVIDER` 的值
+- 阿里云的 Embedding 使用 `ALIYUN_EMBEDDING_MODEL` 配置
+- OpenAI/DeepSeek 的 Embedding 使用 `EMBEDDING_MODEL` 配置（兼容 OpenAI API）
 
 ### 服务配置
 
@@ -182,6 +210,7 @@ LLM_PROVIDER=aliyun
 DASHSCOPE_API_KEY=your_dashscope_api_key_here
 ALIYUN_MODEL_NAME=qwen-turbo
 ALIYUN_TEMPERATURE=0.3
+ALIYUN_EMBEDDING_MODEL=text-embedding-v1
 
 # DeepSeek 配置（备用）
 # DEEPSEEK_API_KEY=your_deepseek_api_key_here
@@ -195,6 +224,12 @@ PORT=3000
 NODE_ENV=development
 CORS_ORIGIN=*
 LOG_LEVEL=info
+
+# ============================================
+# Embedding 服务配置（可选）
+# ============================================
+# Embedding 提供商（可选，默认使用 LLM_PROVIDER）
+# EMBEDDING_PROVIDER=aliyun
 
 # ============================================
 # 向量数据库配置
@@ -231,6 +266,10 @@ SESSION_TIMEOUT_MINUTES=30
   - `aliyun` → 需要 `DASHSCOPE_API_KEY`
   - `deepseek` → 需要 `DEEPSEEK_API_KEY`
   - `openai` → 需要 `OPENAI_API_KEY`
+
+- `EMBEDDING_PROVIDER`（可选，默认使用 `LLM_PROVIDER` 的值）
+  - 如果 `EMBEDDING_PROVIDER=aliyun`（或未设置且 `LLM_PROVIDER=aliyun`）→ 需要 `DASHSCOPE_API_KEY`
+  - 如果 `EMBEDDING_PROVIDER=openai/deepseek` → 需要 `OPENAI_API_KEY` 或 `DEEPSEEK_API_KEY`
 
 缺少必填配置时，应用启动会失败并提示错误信息。
 
@@ -288,6 +327,93 @@ SESSION_TIMEOUT_MINUTES=30
 - [x] 实现 Executor Node（Mock 生图）
 - [x] 验证：用户输入 "画只猫"，后端能解析并返回 Mock 图片
 
+#### 里程碑2前后核心流程对比
+- 之前的实现（里程碑1 - 顺序调用）
+```ts
+// AgentService 直接顺序调用节点
+async *executeWorkflow(initialState: AgentState) {
+  let state = { ...initialState };
+  
+  // 1. 手动调用 Planner Node
+  const plannerResult = await this.plannerNode.execute(state);
+  state = { ...state, ...plannerResult };  // 手动合并状态
+  
+  // 2. 手动判断是否继续
+  if (state.intent?.action === 'unknown' || state.error) {
+    yield error;
+    return;  // 手动控制流程
+  }
+  
+  // 3. 手动调用 Executor Node
+  const executorResult = await this.executorNode.execute(state);
+  state = { ...state, ...executorResult };  // 手动合并状态
+  
+  // 4. 手动推送事件
+  yield events;
+}
+```
+- 特点：
+  - 顺序调用：代码中硬编码执行顺序
+  - 手动状态管理：需要手动合并和传递状态
+  - 流程控制：用 if/else 控制流程
+  - 难以扩展：添加新节点需要修改多处代码
+- 现在的实现（里程碑2 - LangGraph 状态图）
+```ts
+// 1. 定义状态图（agent.graph.ts）
+const graph = new StateGraph(AgentStateAnnotation);
+graph.addNode('planner', plannerNode);
+graph.addNode('executor', executorNode);
+graph.addEdge(START, 'planner');
+graph.addConditionalEdges('planner', (state) => {
+  if (state.error || state.intent?.action === 'unknown') {
+    return END;  // 条件边自动控制流程
+  }
+  return 'executor';
+});
+graph.addEdge('executor', END);
+
+// 2. AgentService 使用图执行
+async *executeWorkflow(initialState: AgentState) {
+  const stream = await this.graph.stream(initialState, {
+    streamMode: 'updates',  // 流式获取每个节点的状态更新
+  });
+  
+  for await (const chunk of stream) {
+    // chunk: { planner: {...}, executor: {...} }
+    // LangGraph 自动管理状态合并和流程控制
+  }
+}
+```
+- 特点：
+  - 声明式编排：通过图结构定义工作流
+  - 自动状态管理：通过状态通道（channels）和 reducer 自动合并
+  - 条件边控制：通过 addConditionalEdges 声明式控制流程
+  - 易于扩展：添加节点只需在图定义中添加，无需修改执行逻辑
+#### 核心区别总结
+维度	之前（里程碑1）	现在（里程碑2）
+执行方式	顺序调用（命令式）	状态图编排（声明式）
+状态管理	手动合并 {...state, ...update}	自动合并（通过 reducer）
+流程控制	if/else 判断	条件边（conditional edges）
+扩展性	需要修改多处代码	只需修改图定义
+可观测性	手动记录日志	LangGraph 自动提供节点执行信息
+错误处理	手动检查错误	可通过条件边自动路由到错误处理节点
+#### 实际效果
+之前：
+- 代码耦合度高，添加 RAG 或 Critic 节点需要修改 AgentService
+- 状态传递容易出错（手动合并可能遗漏字段）
+- 难以可视化工作流
+现在：
+- 工作流清晰可见（在 agent.graph.ts 中一目了然）
+- 状态管理自动化，减少错误
+- 添加新节点只需：
+  ```ts
+  graph.addNode('rag', ragNode);  
+  graph.addEdge('planner', 'rag');  
+  graph.addEdge('rag', 'executor');
+  ```
+- 支持复杂流程（循环、并行、条件分支等）
+里程碑2的核心价值：从命令式顺序调用升级为声明式状态图编排，提升了可维护性和可扩展性。
+
 **完成时间：** 2024-12-30
 
 **完成内容：**
@@ -298,10 +424,21 @@ SESSION_TIMEOUT_MINUTES=30
 - ✅ 可在 Apifox 中测试完整工作流
 
 ### 里程碑 3：记忆与协议 (Memory & Protocol)
-- [ ] 集成 LanceDB（RAG Node）
-- [ ] 实现 GenUI 组件生成
-- [ ] 实现完整的 SSE 事件推送（thought_log, gen_ui_component）
-- [ ] 验证：完整的即梦复刻流程跑通
+- [x] 集成 LanceDB（RAG Node）
+- [x] 实现 GenUI 组件生成
+- [x] 实现完整的 SSE 事件推送（thought_log, gen_ui_component）
+- [x] 验证：完整的即梦复刻流程跑通
+
+**完成时间：** 2024-12-30
+
+**完成内容：**
+- ✅ 创建 KnowledgeService（LanceDB 封装）和 EmbeddingService（向量嵌入）
+- ✅ 实现 RAG Node（风格检索和 Prompt 增强）
+- ✅ 更新 AgentState 接口，支持 enhancedPrompt 对象类型
+- ✅ 更新状态图，添加 RAG 节点：`planner → rag → executor → END`
+- ✅ 知识库自动初始化（启动时加载 5 条默认风格数据）
+- ✅ Executor Node 使用增强后的 Prompt
+- ✅ 完整的即梦复刻流程已跑通
 
 ### 里程碑 4：质量审查 (Quality Control)
 - [ ] 实现 Critic Node（质量审查）

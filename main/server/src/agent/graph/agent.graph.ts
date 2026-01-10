@@ -2,6 +2,7 @@ import { StateGraph, Annotation, START, END } from '@langchain/langgraph';
 import { AgentState, IntentResult } from '../interfaces/agent-state.interface';
 import { GenUIComponent } from '../../common/types/genui-component.interface';
 import { PlannerNode } from '../nodes/planner.node';
+import { RagNode } from '../nodes/rag.node';
 import { ExecutorNode } from '../nodes/executor.node';
 
 /**
@@ -23,8 +24,8 @@ const AgentStateAnnotation = Annotation.Root({
     default: () => undefined,
   }),
 
-  // 增强后的 Prompt - 使用替换策略
-  enhancedPrompt: Annotation<string | undefined>({
+  // 增强后的 Prompt - 使用替换策略（对象类型）
+  enhancedPrompt: Annotation<AgentState['enhancedPrompt']>({
     reducer: (current, update) => update ?? current,
     default: () => undefined,
   }),
@@ -75,14 +76,16 @@ const AgentStateAnnotation = Annotation.Root({
 /**
  * 创建 Agent 工作流状态图
  * 
- * 工作流: planner → executor → END
+ * 工作流: planner → rag → executor → END
  * 
  * @param plannerNode - Planner 节点实例
+ * @param ragNode - RAG 节点实例
  * @param executorNode - Executor 节点实例
  * @returns 编译后的 LangGraph 图实例
  */
 export function createAgentGraph(
   plannerNode: PlannerNode,
+  ragNode: RagNode,
   executorNode: ExecutorNode,
 ) {
   const graph = new StateGraph(AgentStateAnnotation);
@@ -92,6 +95,10 @@ export function createAgentGraph(
     return await plannerNode.execute(state as AgentState);
   });
 
+  graph.addNode('rag', async (state: typeof AgentStateAnnotation.State) => {
+    return await ragNode.execute(state as AgentState);
+  });
+
   graph.addNode('executor', async (state: typeof AgentStateAnnotation.State) => {
     return await executorNode.execute(state as AgentState);
   });
@@ -99,7 +106,7 @@ export function createAgentGraph(
   // 设置入口点：START → planner
   graph.addEdge(START, 'planner' as any);
 
-  // 添加条件边：planner → executor（如果意图识别成功）
+  // 添加条件边：planner → rag（如果意图识别成功）
   graph.addConditionalEdges(
     'planner' as any,
     (state: typeof AgentStateAnnotation.State) => {
@@ -107,10 +114,13 @@ export function createAgentGraph(
       if (state.error || state.intent?.action === 'unknown') {
         return END;
       }
-      // 否则继续到 executor
-      return 'executor';
+      // 否则继续到 rag
+      return 'rag';
     },
   );
+
+  // rag → executor（RAG 节点总是继续，即使检索失败也使用原始 Prompt）
+  graph.addEdge('rag' as any, 'executor' as any);
 
   // executor → END
   graph.addEdge('executor' as any, END);

@@ -24,7 +24,10 @@ export class ExecutorNode {
       throw new Error('Intent is required for execution');
     }
 
-    const { action, prompt } = state.intent;
+    const { action } = state.intent;
+
+    // 使用增强后的 Prompt（如果存在），否则使用原始 Prompt
+    const prompt = state.enhancedPrompt?.final || state.intent.prompt || state.userInput.text;
 
     // 模拟延迟（2-3 秒）
     const delay = 2000 + Math.random() * 1000;
@@ -75,7 +78,6 @@ export class ExecutorNode {
 
     return {
       generatedImageUrl: imageUrl,
-      enhancedPrompt: prompt,
       uiComponents,
       thoughtLogs: [
         {

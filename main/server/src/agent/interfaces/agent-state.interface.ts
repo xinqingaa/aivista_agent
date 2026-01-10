@@ -22,7 +22,15 @@ export interface AgentState {
 
   // Agent 处理结果
   intent?: IntentResult;
-  enhancedPrompt?: string;
+  enhancedPrompt?: {
+    original: string;
+    retrieved: Array<{
+      style: string;
+      prompt: string;
+      similarity: number;
+    }>;
+    final: string;
+  };
   generatedImageUrl?: string;
 
   // UI 组件生成

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LlmModule } from './llm/llm.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
 import { AgentModule } from './agent/agent.module';
 import { validateEnvironment } from './config/configuration';
 
@@ -12,6 +13,7 @@ import { validateEnvironment } from './config/configuration';
  * imports - 导入子模块:
  *   - ConfigModule: 加载环境变量配置（.env 文件）
  *   - LlmModule: LLM 服务模块（提供多模型支持）
+ *   - KnowledgeModule: 知识库模块（LanceDB 向量数据库）
  *   - AgentModule: Agent 工作流模块（包含控制器和服务）
  */
 @Module({
@@ -23,6 +25,7 @@ import { validateEnvironment } from './config/configuration';
       validate: validateEnvironment, // 验证环境变量格式和必填项
     }),
     LlmModule, // LLM 服务模块
+    KnowledgeModule, // 知识库模块
     AgentModule, // Agent 工作流模块
   ],
 })

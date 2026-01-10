@@ -89,14 +89,31 @@ interface AgentState {
 
 ### 2.2 状态图可视化
 
+**当前实现（里程碑3）：**
+
+```mermaid
+graph TD
+    Start([用户输入]) --> Planner[Planner Node<br/>意图解析]
+    Planner -->|解析成功| RAG[RAG Node<br/>风格检索]
+    Planner -->|解析失败| End([结束])
+    
+    RAG -->|检索完成| Executor[Executor Node<br/>任务执行]
+    Executor --> End
+    
+    style Planner fill:#4a90e2
+    style RAG fill:#7b68ee
+    style Executor fill:#50c878
+```
+
+**完整设计（包含 Critic，里程碑4）：**
+
 ```mermaid
 graph TD
     Start([用户输入]) --> Planner[Planner Node<br/>意图解析]
     Planner -->|解析成功| RAG[RAG Node<br/>风格检索]
     Planner -->|解析失败| ErrorHandler[错误处理]
     
-    RAG -->|检索到风格| Executor[Executor Node<br/>任务执行]
-    RAG -->|无匹配风格| Executor
+    RAG -->|检索完成| Executor[Executor Node<br/>任务执行]
     
     Executor -->|执行成功| Critic[Critic Node<br/>质量审查]
     Executor -->|执行失败| ErrorHandler
@@ -609,41 +626,69 @@ async function plannerNode(state: AgentState): Promise<Partial<AgentState>> {
 
 ### 6.1 LangGraph 图构建
 
-```typescript
-import { StateGraph, END } from '@langchain/langgraph';
+**当前实现（里程碑3）：**
 
-function createAgentGraph(): StateGraph<AgentState> {
-  const workflow = new StateGraph<AgentState>({
-    channels: {
-      // 定义状态通道（对应 AgentState 的字段）
-      messages: { reducer: (x, y) => [...x, ...y] },
-      userInput: { reducer: (x, y) => y ?? x },
-      intent: { reducer: (x, y) => y ?? x },
-      // ... 其他字段
-    }
-  });
+```typescript
+import { StateGraph, Annotation, START, END } from '@langchain/langgraph';
+
+// 使用 Annotation.Root 定义状态通道
+const AgentStateAnnotation = Annotation.Root({
+  userInput: Annotation<AgentState['userInput']>({
+    reducer: (current, update) => update ?? current,
+    default: () => ({ text: '' }),
+  }),
+  intent: Annotation<IntentResult | undefined>({
+    reducer: (current, update) => update ?? current,
+    default: () => undefined,
+  }),
+  enhancedPrompt: Annotation<AgentState['enhancedPrompt']>({
+    reducer: (current, update) => update ?? current,
+    default: () => undefined,
+  }),
+  // ... 其他字段
+});
+
+export function createAgentGraph(
+  plannerNode: PlannerNode,
+  ragNode: RagNode,
+  executorNode: ExecutorNode,
+) {
+  const graph = new StateGraph(AgentStateAnnotation);
 
   // 添加节点
-  workflow.addNode('planner', plannerNode);
-  workflow.addNode('rag', ragNode);
-  workflow.addNode('executor', executorNode);
-  workflow.addNode('critic', criticNode);
-  workflow.addNode('genui', genUINode);
-  workflow.addNode('error_handler', errorHandlerNode);
+  graph.addNode('planner', plannerNode);
+  graph.addNode('rag', ragNode);
+  graph.addNode('executor', executorNode);
 
   // 设置入口点
-  workflow.setEntryPoint('planner');
+  graph.addEdge(START, 'planner');
 
   // 添加条件边
-  workflow.addConditionalEdges('planner', shouldContinueToRAG);
-  workflow.addConditionalEdges('rag', shouldContinueToExecutor);
-  workflow.addConditionalEdges('executor', shouldContinueToCritic);
-  workflow.addConditionalEdges('critic', shouldContinueToGenUI);
-  workflow.addConditionalEdges('genui', () => END);
-  workflow.addConditionalEdges('error_handler', () => END);
+  graph.addConditionalEdges('planner', (state) => {
+    if (state.error || state.intent?.action === 'unknown') {
+      return END;
+    }
+    return 'rag';
+  });
 
-  return workflow.compile();
+  graph.addEdge('rag', 'executor');
+  graph.addEdge('executor', END);
+
+  return graph.compile();
 }
+```
+
+**完整设计（包含 Critic，里程碑4）：**
+
+```typescript
+// 添加 Critic 节点和 GenUI 节点
+graph.addNode('critic', criticNode);
+graph.addNode('genui', genUINode);
+
+// 更新条件边
+graph.addConditionalEdges('executor', shouldContinueToCritic);
+graph.addConditionalEdges('critic', shouldContinueToGenUI);
+graph.addConditionalEdges('genui', () => END);
 ```
 
 ### 6.2 流式执行
@@ -789,519 +834,3 @@ async function* executeWorkflowStream(
 ### 9.3 超时控制
 - 每个节点设置超时时间（Planner: 10s, Executor: 5s, Critic: 8s）
 - 超时后进入错误处理流程
-
-
-
-# Agent 工作流详细设计文档 (Agent Workflow Design) 第一版
-
-## 1. 目标
-
-本文档详细设计基于 LangGraph 的 Agent 工作流，实现多模态 AI 创作任务的编排。核心目标是复刻即梦 AI 的复杂编辑工作流逻辑，包括意图识别、知识检索、任务执行和质量审查的完整流程。
-
-## 2. LangGraph 状态机架构
-
-### 2.1 AgentState 数据结构
-
-AgentState 是 LangGraph 状态图的核心数据结构，贯穿整个工作流：
-
-```typescript
-interface AgentState {
-  // 用户输入
-  userMessage: string;              // 用户文本指令
-  maskData?: string;                 // Base64 编码的蒙版图片（可选）
-  currentImageUrl?: string;          // 当前画布上的图片 URL（用于局部重绘）
-  
-  // Agent 处理结果
-  intent?: IntentResult;             // Planner 节点解析的意图
-  enhancedPrompt?: string;           // RAG 节点增强后的完整 Prompt
-  generatedImageUrl?: string;        // Executor 节点生成的图片 URL
-  criticFeedback?: CriticFeedback;   // Critic 节点的审查反馈
-  
-  // UI 组件生成
-  uiComponents: GenUIComponent[];    // 已生成的 UI 组件列表
-  thoughtLogs: ThoughtLog[];         // 思考日志（用于流式推送）
-  
-  // 元数据
-  sessionId: string;                 // 会话 ID
-  timestamp: number;                  // 当前时间戳
-  error?: ErrorInfo;                  // 错误信息（如果有）
-}
-```
-
-### 2.2 节点定义
-
-工作流由以下四个核心节点组成，按顺序执行：
-
-```
-[START] → [Planner] → [RAG] → [Executor] → [Critic] → [END]
-           ↓           ↓         ↓            ↓
-       意图解析    知识检索   任务执行    质量审查
-```
-
-## 3. 节点详细设计
-
-### 3.1 Planner Node（规划节点）
-
-**职责：** 解析用户意图，将自然语言转换为结构化的任务描述。
-
-#### 输入
-- `userMessage`: 用户文本输入
-- `maskData`: 可选的蒙版数据（Base64）
-- `currentImageUrl`: 当前画布图片（用于判断是否为编辑任务）
-
-#### 处理逻辑
-
-1. **多模态输入判断**
-   ```typescript
-   if (maskData && currentImageUrl) {
-     // 用户提供了蒙版 + 当前有图片 = 局部重绘任务
-     taskType = "inpainting";
-   } else if (currentImageUrl && userMessage.includes("调整") || "修改") {
-     // 有图片 + 调整类指令 = 参数调整任务
-     taskType = "parameter_adjustment";
-   } else {
-     // 纯文本 = 文生图任务
-     taskType = "generate_image";
-   }
-   ```
-
-2. **调用 LLM 服务进行意图解析**
-   ```typescript
-   const systemPrompt = `
-   你是一个 AI 创作助手，负责解析用户的创作意图。
-   请将用户输入解析为以下 JSON 格式：
-   {
-     "action": "generate_image" | "inpainting" | "parameter_adjustment",
-     "subject": "主要对象（如：cat, city, person）",
-     "style": "风格关键词（如：cyberpunk, watercolor）",
-     "prompt": "完整的英文提示词",
-     "parameters": {
-       "style_strength": 0-100,
-       "resolution": "800x600"
-     }
-   }
-   `;
-   
-   const response = await llmService.chatWithJson<IntentResult>(
-     [
-       { role: "system", content: systemPrompt },
-       { role: "user", content: userMessage }
-     ],
-     {
-       temperature: 0.3,
-       jsonMode: true
-     }
-   );
-   ```
-
-3. **结构化输出验证**
-   - 验证 JSON 格式
-   - 验证 action 字段的有效性
-   - 提取关键信息（subject, style, prompt）
-
-#### 输出
-- `intent`: IntentResult 对象
-  ```typescript
-  interface IntentResult {
-    action: "generate_image" | "inpainting" | "parameter_adjustment";
-    subject: string;
-    style?: string;
-    prompt: string;
-    parameters?: Record<string, any>;
-    confidence: number;  // 0-1，意图识别的置信度
-  }
-  ```
-
-#### 思考日志推送
-```typescript
-{
-  type: "thought_log",
-  node: "planner",
-  message: `已识别意图：${intent.action}。主题：${intent.subject}，风格：${intent.style || "未指定"}`
-}
-```
-
-#### 错误处理
-- LLM API 调用失败：重试 2 次，失败后返回错误状态
-- JSON 解析失败：使用 LLM 重新解析或返回默认意图（generate_image）
-- 无效输入（空消息、纯表情）：返回友好的错误提示
-
-### 3.2 RAG Node（检索增强生成节点）
-
-**职责：** 从向量数据库中检索风格相关的 Prompt 增强词，提升生成质量。
-
-#### 输入
-- `intent`: Planner 节点解析的意图结果
-- `intent.style`: 风格关键词（如 "cyberpunk"）
-
-#### 处理逻辑
-
-1. **风格关键词提取**
-   ```typescript
-   const styleKeywords = extractStyleKeywords(intent.style, intent.prompt);
-   // 示例：["cyberpunk", "neon", "futuristic"]
-   ```
-
-2. **向量检索**
-   ```typescript
-   const knowledgeService = new KnowledgeService(); // LanceDB 封装
-   const results = await knowledgeService.search({
-     query: styleKeywords.join(" "),
-     limit: 3,  // 返回最相关的 3 条
-     threshold: 0.7  // 相似度阈值
-   });
-   ```
-
-3. **Prompt 增强**
-   ```typescript
-   if (results.length > 0) {
-     const enhancedParts = results.map(r => r.promptEnhancement).join(", ");
-     enhancedPrompt = `${intent.prompt}, ${enhancedParts}`;
-   } else {
-     enhancedPrompt = intent.prompt;  // 无匹配时使用原始 Prompt
-   }
-   ```
-
-#### 输出
-- `enhancedPrompt`: 增强后的完整 Prompt 字符串
-
-#### 思考日志推送
-```typescript
-if (results.length > 0) {
-  {
-    type: "thought_log",
-    node: "rag",
-    message: `正在检索风格库... 找到 ${results.length} 条相关风格提示词。`
-  }
-}
-```
-
-#### 错误处理
-- LanceDB 查询失败：降级为使用原始 Prompt，记录警告日志
-- 无匹配结果：正常流程，使用原始 Prompt
-
-### 3.3 Executor Node（执行节点）
-
-**职责：** 根据意图执行具体的创作任务（文生图、局部重绘、参数调整）。
-
-#### 输入
-- `intent`: 意图结果
-- `enhancedPrompt`: RAG 增强后的 Prompt
-- `maskData`: 蒙版数据（如果是 inpainting 任务）
-- `currentImageUrl`: 当前图片 URL（如果是编辑任务）
-
-#### 处理逻辑
-
-根据 `intent.action` 分发到不同的执行器：
-
-##### 3.3.1 文生图任务 (generate_image)
-
-```typescript
-async function executeGenerateImage(enhancedPrompt: string): Promise<string> {
-  // 模拟延迟（2-3 秒）
-  await sleep(2000 + Math.random() * 1000);
-  
-  // 生成随机种子（基于 Prompt 的哈希值，保证相同 Prompt 返回相同图片）
-  const seed = hashString(enhancedPrompt);
-  
-  // 返回 Mock 图片 URL
-  return `https://picsum.photos/seed/${seed}/800/600`;
-}
-```
-
-##### 3.3.2 局部重绘任务 (inpainting)
-
-```typescript
-async function executeInpainting(
-  enhancedPrompt: string,
-  maskData: string,
-  baseImageUrl: string
-): Promise<string> {
-  // 验证输入
-  if (!maskData || !baseImageUrl) {
-    throw new Error("局部重绘需要提供蒙版和底图");
-  }
-  
-  // 模拟延迟（3-4 秒，比文生图稍长）
-  await sleep(3000 + Math.random() * 1000);
-  
-  // 生成新的随机图片（实际应用中这里会调用真实的 Inpainting API）
-  const seed = hashString(`${enhancedPrompt}-${maskData}-${Date.now()}`);
-  return `https://picsum.photos/seed/${seed}/800/600`;
-}
-```
-
-##### 3.3.3 参数调整任务 (parameter_adjustment)
-
-```typescript
-async function executeParameterAdjustment(
-  enhancedPrompt: string,
-  parameters: Record<string, any>,
-  baseImageUrl: string
-): Promise<string> {
-  // 根据参数调整重新生成（Mock）
-  await sleep(2000 + Math.random() * 1000);
-  
-  const seed = hashString(`${enhancedPrompt}-${JSON.stringify(parameters)}`);
-  return `https://picsum.photos/seed/${seed}/800/600`;
-}
-```
-
-#### 输出
-- `generatedImageUrl`: 生成的图片 URL
-- `uiComponents`: 生成的 GenUI 组件数组
-  ```typescript
-  [
-    {
-      widgetType: "SmartCanvas",
-      props: {
-        imageUrl: generatedImageUrl,
-        mode: intent.action === "inpainting" ? "view" : "view"
-      }
-    },
-    {
-      widgetType: "ActionPanel",
-      props: {
-        actions: [
-          {
-            id: "regenerate_btn",
-            label: "重新生成",
-            type: "button"
-          }
-        ]
-      }
-    }
-  ]
-  ```
-
-#### 思考日志推送
-```typescript
-{
-  type: "thought_log",
-  node: "executor",
-  message: `正在${getActionLabel(intent.action)}... 预计需要 ${getEstimatedTime(intent.action)} 秒。`
-}
-```
-
-#### 错误处理
-- 任务类型不支持：返回错误状态，提示用户
-- 蒙版数据无效：返回友好的错误提示，引导用户重新绘制
-
-### 3.4 Critic Node（审查节点）
-
-**职责：** 对生成结果进行质量审查，决定是否需要调整或重新生成。
-
-#### 输入
-- `generatedImageUrl`: Executor 生成的图片 URL
-- `intent`: 原始意图
-- `enhancedPrompt`: 使用的 Prompt
-
-#### 处理逻辑
-
-1. **质量评估**
-   ```typescript
-   // MVP 版本：基于 Prompt 关键词的简单检查
-   const qualityScore = evaluateQuality(enhancedPrompt, intent);
-   
-   // 评估维度：
-   // - Prompt 完整性（是否包含 subject + style）
-   // - 风格一致性（RAG 检索的风格是否被使用）
-   // - 参数合理性（style_strength 等参数是否在合理范围）
-   ```
-
-2. **决策逻辑**
-   ```typescript
-   interface CriticFeedback {
-     passed: boolean;           // 是否通过审查
-     score: number;              // 质量分数 0-1
-     suggestions?: string[];     // 改进建议
-     needsRegeneration: boolean; // 是否需要重新生成
-   }
-   
-   if (qualityScore < 0.6) {
-     // 质量不足，建议重新生成
-     feedback = {
-       passed: false,
-       score: qualityScore,
-       suggestions: ["建议增加更具体的风格描述", "可以尝试调整风格强度"],
-       needsRegeneration: true
-     };
-   } else if (qualityScore < 0.8) {
-     // 质量尚可，但可以优化
-     feedback = {
-       passed: true,
-       score: qualityScore,
-       suggestions: ["可以尝试调整参数以获得更好效果"],
-       needsRegeneration: false
-     };
-   } else {
-     // 质量优秀
-     feedback = {
-       passed: true,
-       score: qualityScore,
-       needsRegeneration: false
-     };
-   }
-   ```
-
-3. **动态 UI 组件生成**
-   ```typescript
-   if (feedback.suggestions && feedback.suggestions.length > 0) {
-     // 添加建议性的 ActionPanel
-     uiComponents.push({
-       widgetType: "AgentMessage",
-       props: {
-         text: `生成完成！质量评分：${(feedback.score * 100).toFixed(0)}/100。${feedback.suggestions.join(" ")}`,
-         state: "success"
-       }
-     });
-     
-     if (feedback.needsRegeneration) {
-       uiComponents.push({
-         widgetType: "ActionPanel",
-         props: {
-           actions: [
-             {
-               id: "regenerate_btn",
-               label: "重新生成",
-               type: "button"
-             }
-           ]
-         }
-       });
-     }
-   }
-   ```
-
-#### 输出
-- `criticFeedback`: CriticFeedback 对象
-- 更新 `uiComponents`（添加建议性组件）
-
-#### 思考日志推送
-```typescript
-{
-  type: "thought_log",
-  node: "critic",
-  message: `质量审查完成。评分：${(feedback.score * 100).toFixed(0)}/100。${feedback.passed ? "已通过" : "建议优化"}。`
-}
-```
-
-#### 错误处理
-- 评估过程异常：默认通过审查，记录警告日志
-
-## 4. 节点流转条件
-
-### 4.1 正常流转
-
-```
-Planner → RAG → Executor → Critic → END
-```
-
-每个节点执行成功后，自动流转到下一个节点。
-
-### 4.2 条件分支
-
-#### 分支 1：RAG 节点跳过条件
-```typescript
-if (!intent.style || intent.style.trim() === "") {
-  // 无风格关键词，跳过 RAG 节点
-  enhancedPrompt = intent.prompt;
-  // 直接流转到 Executor
-}
-```
-
-#### 分支 2：Critic 节点反馈循环
-```typescript
-if (criticFeedback.needsRegeneration && retryCount < 2) {
-  // 需要重新生成，且重试次数未超限
-  // 流转回 Executor 节点（带重试标记）
-  retryCount++;
-  // 重新执行 Executor
-}
-```
-
-### 4.3 错误回退
-
-- **Planner 失败**：返回错误状态，推送错误消息给前端
-- **RAG 失败**：降级为使用原始 Prompt，继续执行
-- **Executor 失败**：返回错误状态，允许用户重试
-- **Critic 失败**：默认通过审查，继续流程
-
-## 5. 多模态输入处理
-
-### 5.1 文本 + 蒙版协调
-
-当用户同时提供文本指令和蒙版数据时：
-
-1. **Planner 节点**：优先根据蒙版数据判断为 `inpainting` 任务
-2. **文本指令解析**：提取局部重绘的具体要求（如 "换成机械头盔"）
-3. **Prompt 构建**：
-   ```typescript
-   const inpaintingPrompt = `${intent.prompt} in the masked area, ${userMessage}`;
-   ```
-
-### 5.2 上下文理解
-
-支持多轮对话上下文：
-
-```typescript
-interface AgentState {
-  // ... 其他字段
-  conversationHistory: Array<{
-    role: "user" | "assistant";
-    content: string;
-    timestamp: number;
-  }>;
-}
-
-// Planner 节点使用历史上下文
-const contextMessages = [
-  ...state.conversationHistory.slice(-3),  // 最近 3 轮对话
-  { role: "user", content: userMessage }
-];
-```
-
-## 6. 状态持久化
-
-### 6.1 会话状态管理
-
-- 每个 SSE 连接对应一个会话（sessionId）
-- 会话状态存储在内存中（Map<sessionId, AgentState>）
-- 会话超时：30 分钟无活动自动清理
-
-### 6.2 历史记录
-
-- 每次工作流执行完成后，保存关键状态到数据库（可选）
-- 支持用户查看历史创作记录
-
-## 7. 性能优化
-
-### 7.1 并发控制
-
-- 每个会话同时只能执行一个工作流
-- 新请求到达时，如果当前工作流未完成，返回 "处理中" 状态
-
-### 7.2 缓存策略
-
-- RAG 检索结果缓存（相同关键词 5 分钟内复用）
-- LLM API 响应缓存（相同 Prompt 缓存 1 小时）
-
-## 8. 测试验证标准
-
-### 8.1 单元测试
-
-- 每个节点的输入/输出验证
-- 错误处理逻辑测试
-- 边界情况测试（空输入、超长输入等）
-
-### 8.2 集成测试
-
-- 完整工作流端到端测试
-- 多模态输入处理测试
-- SSE 流式推送测试
-
-### 8.3 性能测试
-
-- 单次工作流执行时间 < 5 秒（Mock 延迟除外）
-- 并发 10 个会话的稳定性测试
-
