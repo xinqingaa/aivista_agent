@@ -212,7 +212,7 @@ event: thought_log
 data: {"type":"thought_log","timestamp":1234567890,"data":{"node":"planner","message":"已识别意图：generate_image"}}
 
 event: gen_ui_component
-data: {"type":"gen_ui_component","timestamp":1234567890,"data":{"widgetType":"SmartCanvas","props":{"imageUrl":"https://picsum.photos/800/600"}}}
+data: {"type":"gen_ui_component","timestamp":1234567890,"data":{"widgetType":"ImageView","props":{"imageUrl":"https://picsum.photos/800/600","width":800,"height":600,"fit":"contain"}}}
 
 event: stream_end
 data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1234567890","summary":"任务完成"}}`,

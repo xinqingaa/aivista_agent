@@ -275,18 +275,27 @@ SESSION_TIMEOUT_MINUTES=30
 ## 4. 开发优先级细化 (Implementation Priorities)
 
 ### 里程碑 1：基础通路 (Baseline)
-- [ ] 搭建 NestJS 项目结构
-- [ ] 配置环境变量（`.env.example`）
-- [ ] 实现 LLM 服务封装（参考 `LLM_SERVICE_DESIGN.md`）
-- [ ] 实现基础的 SSE 端点
-- [ ] 验证：前端能连接并接收流式数据
+- [x] 搭建 NestJS 项目结构
+- [x] 配置环境变量（`.env.example`）
+- [x] 实现 LLM 服务封装（参考 `LLM_SERVICE_DESIGN.md`）
+- [x] 实现基础的 SSE 端点
+- [x] 验证：前端能连接并接收流式数据
 
 ### 里程碑 2：大脑构建 (The Brain)
-- [ ] 引入 LangGraph
-- [ ] 定义 AgentState 数据结构
-- [ ] 实现 Planner Node（意图解析）
-- [ ] 实现 Executor Node（Mock 生图）
-- [ ] 验证：用户输入 "画只猫"，后端能解析并返回 Mock 图片
+- [x] 引入 LangGraph
+- [x] 定义 AgentState 数据结构
+- [x] 实现 Planner Node（意图解析）
+- [x] 实现 Executor Node（Mock 生图）
+- [x] 验证：用户输入 "画只猫"，后端能解析并返回 Mock 图片
+
+**完成时间：** 2024-12-30
+
+**完成内容：**
+- ✅ 创建 LangGraph 状态图（`src/agent/graph/agent.graph.ts`）
+- ✅ 集成 LangGraph 到 AgentService，实现流式执行
+- ✅ Planner Node 和 Executor Node 已集成到工作流
+- ✅ 支持 SSE 流式推送工作流执行过程
+- ✅ 可在 Apifox 中测试完整工作流
 
 ### 里程碑 3：记忆与协议 (Memory & Protocol)
 - [ ] 集成 LanceDB（RAG Node）

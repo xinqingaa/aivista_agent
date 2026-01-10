@@ -10,7 +10,7 @@ import { GenUIComponent } from '../../common/types/genui-component.interface';
  * 调用顺序:
  * 1. 接收意图结果（AgentState.intent）
  * 2. 根据意图执行相应任务（当前为模拟图片生成，使用 picsum.photos）
- * 3. 生成 GenUI 组件（SmartCanvas, AgentMessage, ActionPanel）
+ * 3. 生成 GenUI 组件（ImageView, AgentMessage, ActionPanel）
  * 4. 返回执行结果（包含生成的图片 URL 和 UI 组件）
  */
 @Injectable()
@@ -48,11 +48,12 @@ export class ExecutorNode {
         timestamp: Date.now(),
       },
       {
-        widgetType: 'SmartCanvas',
+        widgetType: 'ImageView',
         props: {
           imageUrl,
-          mode: 'view',
-          ratio: 1.5,
+          width: 800,
+          height: 600,
+          fit: 'contain',
         },
         timestamp: Date.now(),
       },

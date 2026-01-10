@@ -1,11 +1,15 @@
 export interface GenUIComponent {
   id?: string;
-  widgetType: 'SmartCanvas' | 'AgentMessage' | 'ActionPanel';
+  widgetType: 'SmartCanvas' | 'ImageView' | 'AgentMessage' | 'ActionPanel';
   props: {
-    // SmartCanvas props
+    // SmartCanvas props (用于未来画布功能)
     imageUrl?: string;
     mode?: 'view' | 'draw_mask';
     ratio?: number;
+    // ImageView props (纯图片展示组件)
+    width?: number;
+    height?: number;
+    fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scaleDown';
     // AgentMessage props
     state?: 'success' | 'loading' | 'failed';
     text?: string;
