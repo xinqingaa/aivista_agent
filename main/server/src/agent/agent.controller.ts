@@ -255,6 +255,10 @@ data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1
       thoughtLogs: [],
       sessionId,
       timestamp: Date.now(),
+      metadata: {
+        retryCount: 0,
+        startTime: Date.now(),
+      },
     };
 
     try {

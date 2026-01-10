@@ -13,30 +13,18 @@
 - ✅ 基础错误处理
 - ✅ 知识库管理 API
 
+✅ **Milestone 4 已完成**：
+- ✅ Critic Node（质量审查节点）
+- ✅ 循环重试机制（最多 3 次重试）
+- ✅ 工作流图更新（Planner → RAG → Executor → Critic）
+- ✅ 配置项添加（CRITIC_TIMEOUT、CRITIC_PASS_THRESHOLD、MAX_RETRY_COUNT）
+- ✅ 支持简化版本和 LLM 真实审查两种模式
+
 ## 下一步开发任务
 
-### 1. 实现 Critic 节点（结果评估） 🔴 高优先级
+### 1. 完善错误处理和重试机制 🟡 中优先级
 
-**目标**：评估生成结果的质量，决定是否需要重新生成。
-
-**任务清单**：
-- [ ] 设计 Critic 节点接口
-- [ ] 实现结果评估逻辑：
-  - 检查图片是否生成成功
-  - 评估图片质量（可选，使用图片质量评估 API）
-  - 检查是否符合用户意图
-- [ ] 实现重试机制（如果评估不通过，最多 3 次重试）
-- [ ] 在 AgentService 中集成 Critic 节点
-- [ ] 更新工作流图（Planner → RAG → Executor → Critic）
-- [ ] 测试评估和重试流程
-
-**相关文档**：
-- [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md) - Agent 工作流设计（Critic 节点部分）
-- [工作流指南](../workflow/WORKFLOW_GUIDE.md) - 了解当前工作流实现
-
-**预计工作量**：1-2 天
-
-### 2. 完善错误处理和重试机制 🟡 中优先级
+### 2. 添加单元测试和集成测试 🟢 低优先级
 
 **目标**：提高系统的健壮性和用户体验。
 
@@ -52,7 +40,7 @@
 
 **预计工作量**：1-2 天
 
-### 3. 添加单元测试和集成测试 🟢 低优先级
+### 3. 前端集成（Flutter 应用） 🔴 高优先级
 
 **目标**：确保代码质量和功能稳定性。
 
@@ -66,7 +54,29 @@
 
 **预计工作量**：2-3 天
 
-### 4. 前端集成（Flutter 应用） 🔴 高优先级
+## 已完成任务
+
+### ✅ Milestone 4: Critic Node 和循环机制
+
+**完成日期**: 2026-01-10
+
+**任务清单**：
+- [x] 设计 Critic 节点接口
+- [x] 实现结果评估逻辑（简化版本和 LLM 版本）
+  - 检查图片是否生成成功
+  - 评估图片质量（基于 intent.confidence 和随机因素，或使用 LLM）
+  - 检查是否符合用户意图
+- [x] 实现重试机制（如果评估不通过，最多 3 次重试）
+- [x] 在 AgentService 中集成 Critic 节点
+- [x] 更新工作流图（Planner → RAG → Executor → Critic）
+- [x] 添加配置项（CRITIC_TIMEOUT、CRITIC_PASS_THRESHOLD、MAX_RETRY_COUNT）
+- [x] 更新文档
+
+**相关文档**：
+- [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md) - Agent 工作流设计（Critic 节点部分）
+- [工作流指南](../workflow/WORKFLOW_GUIDE.md) - 完整工作流说明
+
+## 待完成任务
 
 **目标**：实现前后端联调，完成完整的用户体验。
 
@@ -88,7 +98,7 @@
 
 ### 第一阶段：完善后端核心功能（1-2 周）
 
-1. **Critic 节点** - 确保输出质量，完成 Milestone 4
+1. ✅ **Critic 节点** - 确保输出质量，完成 Milestone 4
 2. **错误处理优化** - 提高系统稳定性
 
 ### 第二阶段：测试和优化（1 周）
@@ -149,7 +159,8 @@
 随着功能开发，需要更新以下文档：
 
 - [x] 更新工作流文档（Milestone 3 完成）
-- [ ] 更新工作流设计文档（添加 Critic 节点）
+- [x] 更新工作流设计文档（添加 Critic 节点，Milestone 4 完成）
+- [x] 更新工作流指南（添加 Critic 节点说明，Milestone 4 完成）
 - [ ] 创建部署指南
 - [ ] 创建贡献指南
 

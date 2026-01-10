@@ -94,6 +94,22 @@ class EnvironmentVariables {
   @IsNumber()
   @IsOptional()
   RAG_SEARCH_LIMIT?: number;
+
+  // Critic 节点配置
+  @IsNumber()
+  @IsOptional()
+  CRITIC_TIMEOUT?: number;
+
+  @IsNumber()
+  @IsOptional()
+  CRITIC_PASS_THRESHOLD?: number;
+
+  @IsNumber()
+  @IsOptional()
+  MAX_RETRY_COUNT?: number;
+
+  @IsOptional()
+  CRITIC_USE_LLM?: boolean;
 }
 
 export function validateEnvironment(config: Record<string, unknown>) {

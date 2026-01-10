@@ -29,8 +29,10 @@ export class AgentService {
    * 
    * 工作流步骤（由 LangGraph 编排）:
    * 1. Planner Node: 识别用户意图（generate_image/inpainting/adjust_parameters）
-   * 2. Executor Node: 执行任务（如生成图片）
-   * 3. 推送思考日志、GenUI 组件和流结束事件
+   * 2. RAG Node: 检索相关风格，增强 Prompt
+   * 3. Executor Node: 执行任务（如生成图片）
+   * 4. Critic Node: 质量审查，判断是否需要重试（最多 3 次）
+   * 5. 推送思考日志、GenUI 组件和流结束事件
    */
   async *executeWorkflow(initialState: AgentState): AsyncGenerator<any> {
     try {
@@ -108,6 +110,19 @@ export class AgentService {
               timestamp: Date.now(),
               data: update.enhancedPrompt,
             };
+          }
+
+          // Critic 节点执行后，推送 qualityCheck 信息（可选）
+          if (nodeName === 'critic' && update.qualityCheck) {
+            const qualityCheck = update.qualityCheck;
+            const retryCount = update.metadata?.retryCount || currentState.metadata?.retryCount || 0;
+            
+            // 如果未通过且需要重试，推送重试信息
+            if (!qualityCheck.passed && retryCount > 0) {
+              this.logger.log(
+                `Quality check failed, retrying (attempt ${retryCount})...`,
+              );
+            }
           }
 
           // 推送 GenUI 组件

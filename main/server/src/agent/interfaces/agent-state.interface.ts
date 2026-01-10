@@ -10,6 +10,16 @@ export interface IntentResult {
   parameters?: Record<string, any>;
 }
 
+/**
+ * 质量审查结果（Critic 节点输出）
+ */
+export interface QualityCheck {
+  passed: boolean;
+  score: number; // 0-1
+  feedback?: string;
+  suggestions?: string[];
+}
+
 export interface AgentState {
   // 用户输入
   userInput: {
@@ -33,6 +43,9 @@ export interface AgentState {
   };
   generatedImageUrl?: string;
 
+  // Critic 节点输出
+  qualityCheck?: QualityCheck;
+
   // UI 组件生成
   uiComponents: GenUIComponent[];
   thoughtLogs: Array<{
@@ -44,6 +57,11 @@ export interface AgentState {
   // 元数据
   sessionId: string;
   timestamp: number;
+  metadata?: {
+    currentNode?: string;
+    retryCount?: number;
+    startTime?: number;
+  };
   error?: {
     code: string;
     message: string;

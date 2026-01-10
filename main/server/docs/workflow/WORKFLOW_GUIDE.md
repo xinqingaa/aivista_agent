@@ -2,12 +2,12 @@
 
 ## 1. 概述
 
-本文档详细说明 AiVista Agent 系统的完整工作流程，从用户输入到最终生成图片的每一步过程。当前系统实现了 **Milestone 3**，包含三个核心节点：Planner → RAG → Executor。
+本文档详细说明 AiVista Agent 系统的完整工作流程，从用户输入到最终生成图片的每一步过程。当前系统实现了 **Milestone 4**，包含四个核心节点：Planner → RAG → Executor → Critic。
 
 ### 1.1 整体架构
 
 ```
-用户输入 → Planner Node (意图识别) → RAG Node (风格检索) → Executor Node (任务执行) → 生成结果
+用户输入 → Planner Node (意图识别) → RAG Node (风格检索) → Executor Node (任务执行) → Critic Node (质量审查) → 生成结果（或重试）
 ```
 
 ### 1.2 工作流程图
@@ -18,11 +18,16 @@ graph LR
     Planner -->|成功| RAG[RAG Node<br/>向量检索]
     Planner -->|失败| End1([结束])
     RAG --> Executor[Executor Node<br/>任务执行]
-    Executor --> End2([返回结果])
+    Executor --> Critic[Critic Node<br/>质量审查]
+    Critic -->|通过| End2([返回结果])
+    Critic -->|未通过| RetryCheck{重试次数<br/>< 3?}
+    RetryCheck -->|是| RAG
+    RetryCheck -->|否| End2
     
     style Planner fill:#e1f5ff
     style RAG fill:#fff4e1
     style Executor fill:#e8f5e9
+    style Critic fill:#ffcccb
 ```
 
 ## 2. 知识库内容
@@ -218,6 +223,57 @@ graph LR
 - 格式: `https://picsum.photos/seed/{hash}/800/600`
 - 相同 Prompt 会生成相同的图片（Mock 实现）
 
+### 3.4 Critic Node（质量审查节点）
+
+**职责**: 对 Executor 的执行结果进行质量审查，判断是否满足用户需求。
+
+**输入**: 
+- `AgentState.generatedImageUrl` - 生成的图片 URL
+- `AgentState.intent` - 用户意图
+- `AgentState.enhancedPrompt` - 增强后的 Prompt
+
+**处理流程**:
+1. 验证输入（`generatedImageUrl` 和 `intent` 必须存在）
+2. 执行质量审查：
+   - **方案 A（可选）**: 调用 LLM 进行真实审查（需要设置 `CRITIC_USE_LLM=true`）
+   - **方案 B（默认）**: 基于 `intent.confidence` 和随机因素计算分数（MVP 版本）
+3. 判断是否通过（分数 >= `CRITIC_PASS_THRESHOLD`，默认 0.7）
+4. 如果未通过且未达到最大重试次数，更新 `retryCount`
+5. 返回 `qualityCheck` 结果（passed、score、feedback、suggestions）
+
+**输出**: 
+```typescript
+{
+  qualityCheck: {
+    passed: boolean,        // 是否通过审查
+    score: number,          // 质量分数 (0-1)
+    feedback?: string,      // 评估反馈
+    suggestions?: string[]  // 改进建议（如果未通过）
+  },
+  thoughtLogs: [{
+    node: 'critic',
+    message: '开始质量审查...',
+    timestamp: number
+  }, {
+    node: 'critic',
+    message: '审查完成，得分：0.85，通过',
+    timestamp: number
+  }],
+  metadata: {
+    retryCount: number      // 当前重试次数（如果需要重试）
+  }
+}
+```
+
+**质量审查逻辑**:
+- **简化版本（默认）**: 基于 `intent.confidence` 和随机因素（-0.1 到 +0.2）
+- **LLM 版本（可选）**: 调用 LLM 进行真实审查，评估是否符合用户意图、是否包含主体、风格是否匹配
+
+**重试机制**:
+- 如果 `qualityCheck.passed === false` 且 `retryCount < MAX_RETRY_COUNT`（默认 3），则返回 RAG 节点重新执行
+- 每次重试时，`retryCount` 会增加 1
+- 达到最大重试次数后，即使未通过也会返回结果
+
 ## 4. 数据流转
 
 ### 4.1 AgentState 状态变化
@@ -294,6 +350,62 @@ graph LR
     }
   ]
 }
+
+// Critic Node 执行后（通过情况）
+{
+  ...previousState,
+  qualityCheck: {
+    passed: true,
+    score: 0.85,
+    feedback: '图片质量符合要求'
+  },
+  metadata: {
+    retryCount: 0,
+    currentNode: 'critic'
+  },
+  thoughtLogs: [
+    ...previousThoughtLogs,
+    {
+      node: 'critic',
+      message: '开始质量审查...',
+      timestamp: 1234567896
+    },
+    {
+      node: 'critic',
+      message: '审查完成，得分：0.85，通过',
+      timestamp: 1234567897
+    }
+  ]
+}
+
+// Critic Node 执行后（未通过，需要重试）
+{
+  ...previousState,
+  qualityCheck: {
+    passed: false,
+    score: 0.65,
+    feedback: '图片可能需要调整，建议重新生成或调整参数',
+    suggestions: ['尝试调整风格强度', '重新生成', '修改 Prompt']
+  },
+  metadata: {
+    retryCount: 1,  // 重试次数增加
+    currentNode: 'critic'
+  },
+  thoughtLogs: [
+    ...previousThoughtLogs,
+    {
+      node: 'critic',
+      message: '开始质量审查...',
+      timestamp: 1234567896
+    },
+    {
+      node: 'critic',
+      message: '审查完成，得分：0.65，未通过，将进行第 1 次重试',
+      timestamp: 1234567897
+    }
+  ]
+}
+// 然后返回 RAG 节点重新执行
 ```
 
 ## 5. SSE 事件流
@@ -332,7 +444,13 @@ graph LR
    ↓
 9. thought_log (executor: "任务执行完成：生成图片")
    ↓
-10. stream_end
+10. thought_log (critic: "开始质量审查...")
+   ↓
+11. thought_log (critic: "审查完成，得分：0.85，通过")
+   或
+11. thought_log (critic: "审查完成，得分：0.65，未通过，将进行第 1 次重试")
+   ↓ (如果需要重试，返回步骤 3)
+12. stream_end
 ```
 
 ### 5.3 完整 SSE 响应示例
@@ -407,7 +525,26 @@ VECTOR_DB_PATH=./data/lancedb
 VECTOR_DIMENSION=1536
 ```
 
-### 6.3 Embedding 服务配置
+### 6.3 Critic 节点配置
+
+**环境变量**:
+```bash
+# Critic 节点超时时间（默认: 8 秒）
+CRITIC_TIMEOUT=8
+
+# 质量通过阈值（默认: 0.7，分数 >= 0.7 视为通过）
+CRITIC_PASS_THRESHOLD=0.7
+
+# 最大重试次数（默认: 3）
+MAX_RETRY_COUNT=3
+
+# 是否使用 LLM 进行真实审查（默认: false，使用简化版本）
+CRITIC_USE_LLM=false
+```
+
+**配置位置**: `main/server/.env`
+
+### 6.4 Embedding 服务配置
 
 ```bash
 # Embedding 提供商（可选，默认使用 LLM_PROVIDER）
@@ -446,9 +583,13 @@ EMBEDDING_MODEL=text-embedding-ada-002
 - ✅ Executor 节点日志顺序已修复（先推送"开始执行任务"，后推送"任务执行完成"）
 - ✅ 添加了 `enhanced_prompt` 事件，前端可以查看检索到的风格详情
 
+**已完成的优化**:
+- ✅ Critic Node 已实现（Milestone 4 完成）
+- ✅ 循环重试机制已实现（最多 3 次重试）
+
 **待优化**:
 - ⚠️ RAG 检索结果相关性可以进一步提升（已添加过滤逻辑，需要测试验证效果）
-- ⚠️ 缺少 Critic Node（Milestone 4 计划实现）
+- ⚠️ 可以启用真实 LLM 质量审查（设置 `CRITIC_USE_LLM=true`）
 
 ## 8. 故障排查
 
@@ -504,11 +645,23 @@ EMBEDDING_MODEL=text-embedding-ada-002
 - **后端实施文档**: [../design/PROMPT_README.md](../design/PROMPT_README.md)
 - **数据模型设计**: [../design/DATA_MODELS_DESIGN.md](../design/DATA_MODELS_DESIGN.md)
 
-## 10. 未来计划（Milestone 4）
+## 10. Milestone 4 完成状态
 
-- **Critic Node**: 质量审查节点，检查生成结果质量
-- **循环机制**: 如果质量不达标，重新执行 Executor（最多 3 次重试）
+✅ **Milestone 4 已完成**：
+- ✅ **Critic Node**: 质量审查节点，检查生成结果质量
+- ✅ **循环机制**: 如果质量不达标，自动重试（最多 3 次）
+- ✅ **工作流图更新**: Planner → RAG → Executor → Critic → (GenUI 或 重试)
+
+**配置项**:
+- `CRITIC_PASS_THRESHOLD`: 质量通过阈值（默认 0.7）
+- `MAX_RETRY_COUNT`: 最大重试次数（默认 3）
+- `CRITIC_USE_LLM`: 是否使用 LLM 进行真实审查（默认 false，使用简化版本）
+- `CRITIC_TIMEOUT`: Critic 节点超时时间（默认 8 秒）
+
+## 11. 未来计划（Milestone 5）
+
 - **更多风格**: 支持动态添加和管理风格数据
 - **真实生图**: 集成真实的 AI 图像生成服务（Midjourney、Stable Diffusion 等）
 - **工作流元数据**: 推送节点执行时间、总耗时等性能指标
 - **智能过滤**: 进一步优化 RAG 检索结果，根据用户意图动态调整过滤策略
+- **真实质量审查**: 将 Critic Node 升级为使用 LLM 进行真实审查（已支持，通过 `CRITIC_USE_LLM=true` 启用）

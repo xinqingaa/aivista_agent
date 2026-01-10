@@ -1,9 +1,10 @@
 import { StateGraph, Annotation, START, END } from '@langchain/langgraph';
-import { AgentState, IntentResult } from '../interfaces/agent-state.interface';
+import { AgentState, IntentResult, QualityCheck } from '../interfaces/agent-state.interface';
 import { GenUIComponent } from '../../common/types/genui-component.interface';
 import { PlannerNode } from '../nodes/planner.node';
 import { RagNode } from '../nodes/rag.node';
 import { ExecutorNode } from '../nodes/executor.node';
+import { CriticNode } from '../nodes/critic.node';
 
 /**
  * LangGraph 状态通道定义
@@ -34,6 +35,21 @@ const AgentStateAnnotation = Annotation.Root({
   generatedImageUrl: Annotation<string | undefined>({
     reducer: (current, update) => update ?? current,
     default: () => undefined,
+  }),
+
+  // 质量审查结果 - 使用替换策略
+  qualityCheck: Annotation<QualityCheck | undefined>({
+    reducer: (current, update) => update ?? current,
+    default: () => undefined,
+  }),
+
+  // 元数据 - 使用合并策略
+  metadata: Annotation<AgentState['metadata']>({
+    reducer: (current, update) => {
+      if (!update) return current;
+      return { ...current, ...update };
+    },
+    default: () => ({}),
   }),
 
   // UI 组件列表 - 使用追加策略
@@ -76,17 +92,19 @@ const AgentStateAnnotation = Annotation.Root({
 /**
  * 创建 Agent 工作流状态图
  * 
- * 工作流: planner → rag → executor → END
+ * 工作流: planner → rag → executor → critic → (END 或 重试到 rag)
  * 
  * @param plannerNode - Planner 节点实例
  * @param ragNode - RAG 节点实例
  * @param executorNode - Executor 节点实例
+ * @param criticNode - Critic 节点实例
  * @returns 编译后的 LangGraph 图实例
  */
 export function createAgentGraph(
   plannerNode: PlannerNode,
   ragNode: RagNode,
   executorNode: ExecutorNode,
+  criticNode: CriticNode,
 ) {
   const graph = new StateGraph(AgentStateAnnotation);
 
@@ -96,11 +114,16 @@ export function createAgentGraph(
   });
 
   graph.addNode('rag', async (state: typeof AgentStateAnnotation.State) => {
+    // 如果是从 critic 重试回来的，retryCount 已经在 critic 条件边中更新
     return await ragNode.execute(state as AgentState);
   });
 
   graph.addNode('executor', async (state: typeof AgentStateAnnotation.State) => {
     return await executorNode.execute(state as AgentState);
+  });
+
+  graph.addNode('critic', async (state: typeof AgentStateAnnotation.State) => {
+    return await criticNode.execute(state as AgentState);
   });
 
   // 设置入口点：START → planner
@@ -122,8 +145,44 @@ export function createAgentGraph(
   // rag → executor（RAG 节点总是继续，即使检索失败也使用原始 Prompt）
   graph.addEdge('rag' as any, 'executor' as any);
 
-  // executor → END
-  graph.addEdge('executor' as any, END);
+  // executor → critic（新增）
+  graph.addConditionalEdges(
+    'executor' as any,
+    (state: typeof AgentStateAnnotation.State) => {
+      if (state.error) return END;
+      // 如果生成了图片，进入 critic
+      if (state.generatedImageUrl) {
+        return 'critic';
+      }
+      return END;
+    },
+  );
+
+  // critic → (END 或 重试到 rag)（新增）
+  graph.addConditionalEdges(
+    'critic' as any,
+    (state: typeof AgentStateAnnotation.State) => {
+      if (state.error) return END;
+
+      const qualityCheck = state.qualityCheck;
+      const retryCount = state.metadata?.retryCount || 0;
+      const maxRetryCount = 3; // 可以从配置读取
+
+      // 如果通过，直接结束
+      if (qualityCheck?.passed) {
+        return END;
+      }
+
+      // 如果未通过且可重试，返回 rag（重试）
+      // 注意：retryCount 已经在 critic 节点中更新（如果需要重试的话）
+      if (retryCount <= maxRetryCount && !qualityCheck?.passed) {
+        return 'rag';
+      }
+
+      // 即使未通过也返回结果（达到最大重试次数）
+      return END;
+    },
+  );
 
   // 编译图
   return graph.compile();
