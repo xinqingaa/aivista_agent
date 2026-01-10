@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AgentState } from '../interfaces/agent-state.interface';
 import { KnowledgeService } from '../../knowledge/knowledge.service';
 
@@ -24,7 +25,21 @@ import { KnowledgeService } from '../../knowledge/knowledge.service';
 export class RagNode {
   private readonly logger = new Logger(RagNode.name);
 
-  constructor(private readonly knowledgeService: KnowledgeService) {}
+  // 风格名称映射（中文 → 英文）
+  private readonly styleMap: Record<string, string> = {
+    '赛博朋克': 'Cyberpunk',
+    '水彩': 'Watercolor',
+    '极简': 'Minimalist',
+    '极简主义': 'Minimalist',
+    '油画': 'Oil Painting',
+    '动漫': 'Anime',
+    '动画': 'Anime',
+  };
+
+  constructor(
+    private readonly knowledgeService: KnowledgeService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async execute(state: AgentState): Promise<Partial<AgentState>> {
     this.logger.log('RAG Node: Starting style retrieval...');
@@ -51,13 +66,28 @@ export class RagNode {
     try {
       // 1. 构建检索查询
       // 优先使用 style，其次是 subject，最后是原始文本
-      const queryParts = [
-        state.intent.style,
-        state.intent.subject,
-        state.userInput.text,
-      ].filter(Boolean);
+      let queryText = '';
+      let styleEnglish = '';
 
-      const queryText = queryParts.join(' ');
+      // 如果存在风格关键词，尝试映射为英文
+      if (state.intent.style) {
+        styleEnglish = this.styleMap[state.intent.style] || '';
+        // 构建中英文混合查询
+        const queryParts = [
+          state.intent.style,
+          styleEnglish,
+          state.intent.subject,
+          state.userInput.text,
+        ].filter(Boolean);
+        queryText = queryParts.join(' ');
+      } else {
+        // 如果没有风格，使用 subject 和原始文本
+        const queryParts = [
+          state.intent.subject,
+          state.userInput.text,
+        ].filter(Boolean);
+        queryText = queryParts.join(' ');
+      }
 
       if (!queryText) {
         this.logger.warn('RAG Node: query text is empty, using original prompt');
@@ -77,11 +107,32 @@ export class RagNode {
         };
       }
 
-      // 2. 向量检索
-      const results = await this.knowledgeService.search(queryText, {
-        limit: 3, // 最多返回 3 条相关风格
-        minSimilarity: 0.6, // 最小相似度阈值
+      // 2. 获取配置参数
+      const minSimilarity = this.configService.get<number>('RAG_MIN_SIMILARITY') ?? 0.4;
+      const searchLimit = this.configService.get<number>('RAG_SEARCH_LIMIT') ?? 3;
+
+      this.logger.debug(`RAG Node: Query text: "${queryText}", minSimilarity: ${minSimilarity}, limit: ${searchLimit}`);
+
+      // 3. 向量检索
+      let results = await this.knowledgeService.search(queryText, {
+        limit: searchLimit,
+        minSimilarity,
       });
+
+      // 4. 如果第一次检索失败且存在中文风格名称，尝试仅使用英文风格名称再次检索
+      if (results.length === 0 && styleEnglish) {
+        this.logger.debug(`RAG Node: First search failed, retrying with English style name: "${styleEnglish}"`);
+        const retryQuery = [styleEnglish, state.intent.subject, state.userInput.text]
+          .filter(Boolean)
+          .join(' ');
+        results = await this.knowledgeService.search(retryQuery, {
+          limit: searchLimit,
+          minSimilarity,
+        });
+        if (results.length > 0) {
+          this.logger.log(`RAG Node: Retry search succeeded with English style name`);
+        }
+      }
 
       // 3. 构建增强后的 Prompt
       const originalPrompt = state.userInput.text;
@@ -92,8 +143,11 @@ export class RagNode {
         const retrievedPrompts = results.map((r) => r.prompt).join(', ');
         finalPrompt = `${originalPrompt}, ${retrievedPrompts}`;
 
+        const styleNames = results.map((r) => r.style).join('、');
+        const similarityScores = results.map((r) => r.similarity.toFixed(2)).join(', ');
+
         this.logger.log(
-          `RAG Node: Retrieved ${results.length} styles: ${results.map((r) => r.style).join(', ')}`,
+          `RAG Node: Retrieved ${results.length} styles: ${styleNames} (similarities: ${similarityScores})`,
         );
 
         return {
@@ -109,14 +163,16 @@ export class RagNode {
           thoughtLogs: [
             {
               node: 'rag',
-              message: `检索到 ${results.length} 条相关风格：${results.map((r) => r.style).join('、')}`,
+              message: `检索到 ${results.length} 条相关风格：${styleNames}`,
               timestamp: Date.now(),
             },
           ],
         };
       } else {
         // 未检索到匹配的风格，使用原始 Prompt
-        this.logger.log('RAG Node: No matching styles found, using original prompt');
+        this.logger.warn(
+          `RAG Node: No matching styles found (query: "${queryText}", minSimilarity: ${minSimilarity}), using original prompt`,
+        );
         return {
           enhancedPrompt: {
             original: originalPrompt,

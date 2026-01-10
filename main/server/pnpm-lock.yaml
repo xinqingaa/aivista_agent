@@ -8,9 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@lancedb/lancedb':
+        specifier: ^0.5.0
+        version: 0.5.2(ws@8.18.3)(zod@3.25.76)
       '@langchain/community':
         specifier: ^0.3.0
-        version: 0.3.59(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(zod@3.25.76))(@ibm-cloud/watsonx-ai@1.7.5)(@langchain/core@0.3.80(openai@4.104.0(ws@8.18.3)(zod@3.25.76)))(axios@1.13.2)(handlebars@4.7.8)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(jsonwebtoken@9.0.3)(lodash@4.17.21)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(playwright@1.57.0)(weaviate-client@3.10.0)(ws@8.18.3)
+        version: 0.3.59(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(zod@3.25.76))(@ibm-cloud/watsonx-ai@1.7.5)(@lancedb/lancedb@0.5.2(ws@8.18.3)(zod@3.25.76))(@langchain/core@0.3.80(openai@4.104.0(ws@8.18.3)(zod@3.25.76)))(axios@1.13.2)(handlebars@4.7.8)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(jsonwebtoken@9.0.3)(lodash@4.17.21)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(playwright@1.57.0)(weaviate-client@3.10.0)(ws@8.18.3)
       '@langchain/core':
         specifier: ^0.3.0
         version: 0.3.80(openai@4.104.0(ws@8.18.3)(zod@3.25.76))
@@ -47,9 +50,6 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
-      vectordb:
-        specifier: ^0.5.0
-        version: 0.5.0(@apache-arrow/ts@14.0.2)(apache-arrow@14.0.2)
     devDependencies:
       '@nestjs/cli':
         specifier: ^10.0.0
@@ -141,9 +141,6 @@ packages:
 
   '@anthropic-ai/sdk@0.27.3':
     resolution: {integrity: sha512-IjLt0gd3L4jlOfilxVXTifn42FnVffMgDC04RJK1KDZpmkBWLv0XC92MVVmkxrFZNS/7l3xWgP/I3nqtX1sQHw==}
-
-  '@apache-arrow/ts@14.0.2':
-    resolution: {integrity: sha512-CtwAvLkK0CZv7xsYeCo91ml6PvlfzAmAJZkRYuz2GNBwfYufj5SVi0iuSMwIMkcU/szVwvLdzORSLa5PlF/2ug==}
 
   '@babel/code-frame@7.27.1':
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
@@ -488,30 +485,41 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
-  '@lancedb/vectordb-darwin-arm64@0.4.20':
-    resolution: {integrity: sha512-ffP2K4sA5mQTgePyARw1y8dPN996FmpvyAYoWO+TSItaXlhcXvc+KVa5udNMCZMDYeEnEv2Xpj6k4PwW3oBz+A==}
+  '@lancedb/lancedb-darwin-arm64@0.5.2':
+    resolution: {integrity: sha512-tEtwM+c3D6imAh1wE0nBGYFwRILeX3E1/mNjUjIV8panlfvO2SMJuDORRjtfKNt1GghfVQ5QFu94cL+xSzWjow==}
+    engines: {node: '>= 18'}
     cpu: [arm64]
     os: [darwin]
 
-  '@lancedb/vectordb-darwin-x64@0.4.20':
-    resolution: {integrity: sha512-GSYsXE20RIehDu30FjREhJdEzhnwOTV7ZsrSXagStzLY1gr7pyd7sfqxmmUtdD09di7LnQoiM71AOpPTa01YwQ==}
+  '@lancedb/lancedb-darwin-x64@0.5.2':
+    resolution: {integrity: sha512-Z/MRAleGm/us2XTb/L2WalIGKO8L6mumB7lqAhXsKiz06aYfE3+L8eEfSDcBdNfMv9Le1vA44kIJlnBX1ADV+g==}
+    engines: {node: '>= 18'}
     cpu: [x64]
     os: [darwin]
 
-  '@lancedb/vectordb-linux-arm64-gnu@0.4.20':
-    resolution: {integrity: sha512-FpNOjOsz3nJVm6EBGyNgbOW2aFhsWZ/igeY45Z8hbZaaK2YBwrg/DASoNlUzgv6IR8cUaGJ2irNVJfsKR2cG6g==}
+  '@lancedb/lancedb-linux-arm64-gnu@0.5.2':
+    resolution: {integrity: sha512-/menmFjQD877YAiYts8SRCqH52QSeNAwzv2n1CBV6XZGeH5vH+Jq7JTwXdllfhfjytl26xfJJ/zvCIJ7DuUN/Q==}
+    engines: {node: '>= 18'}
     cpu: [arm64]
     os: [linux]
 
-  '@lancedb/vectordb-linux-x64-gnu@0.4.20':
-    resolution: {integrity: sha512-pOqWjrRZQSrLTlQPkjidRii7NZDw8Xu9pN6ouVu2JAK8n81FXaPtFCyAI+Y3v9GpnYDN0rvD4eQ36aHAVPsa2g==}
+  '@lancedb/lancedb-linux-x64-gnu@0.5.2':
+    resolution: {integrity: sha512-spLVfnDexIifg8UPocksjlUCKcfyKeWfoY2w/WJr1sVdarVorPOZwQ0zB5zrNq7tD4PJB9oGUCYt3hbj2+D/lQ==}
+    engines: {node: '>= 18'}
     cpu: [x64]
     os: [linux]
 
-  '@lancedb/vectordb-win32-x64-msvc@0.4.20':
-    resolution: {integrity: sha512-5J5SsYSJ7jRCmU/sgwVHdrGz43B/7R2T9OEoFTKyVAtqTZdu75rkytXyn9SyEayXVhlUOaw76N0ASm0hAoDS/A==}
+  '@lancedb/lancedb-win32-x64-msvc@0.5.2':
+    resolution: {integrity: sha512-obyTCSjoIyHVaDpnNrIBoiw7Y2jLBfZs3VzbyigjI3ylZRbvVGKmKO/Vwc2kuT07/vKPysHkrS6o1AQYRRLzhw==}
+    engines: {node: '>= 18'}
     cpu: [x64]
     os: [win32]
+
+  '@lancedb/lancedb@0.5.2':
+    resolution: {integrity: sha512-0cEE07E5osctkM/C/9rAFnXS5FxdVFOiUFZt4g+E0qsS4oTLYn7IhQTQL/LfI7N7XjGyLQ3SkRfl8PCXHLMhdQ==}
+    engines: {node: '>= 18'}
+    cpu: [x64, arm64]
+    os: [darwin, linux, win32]
 
   '@langchain/community@0.3.59':
     resolution: {integrity: sha512-lYoVFC9wArWMXaixDgIadTE22jk4ZYAvSHHmwaMRagkGr5f4kyqMeJ83UUeW76XPx2cBy2fRSO+acSgqSuWE6A==}
@@ -956,9 +964,6 @@ packages:
   '@microsoft/tsdoc@0.15.1':
     resolution: {integrity: sha512-4aErSrCR/On/e5G2hDP0wjooqDdauzEbIq8hIkIe5pXV0rtWJZvdCEKL0ykZxex+IxIwBp0eGeV48hQN07dXtw==}
 
-  '@neon-rs/load@0.0.74':
-    resolution: {integrity: sha512-/cPZD907UNz55yrc/ud4wDgQKtU1TvkD9jeqZWG6J4IMmZkp6zgjkQcKA8UvpkZlcpPHvc8J17sGzLFbP/LUYg==}
-
   '@nestjs/cli@10.4.9':
     resolution: {integrity: sha512-s8qYd97bggqeK7Op3iD49X2MpFtW4LVNLAwXFkfbRxKME6IYT7X0muNTJ2+QfI8hpbNx9isWkrLWIp+g5FOhiA==}
     engines: {node: '>= 16.14'}
@@ -1138,6 +1143,9 @@ packages:
   '@sinonjs/fake-timers@10.3.0':
     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
 
+  '@swc/helpers@0.5.18':
+    resolution: {integrity: sha512-TXTnIcNJQEKwThMMqBXsZ4VGAza6bvN4pa41Rkqoio6QBKMvo+5lexeTMScGCIxtzgQJzElcvIltani+adC5PQ==}
+
   '@tokenizer/inflate@0.2.7':
     resolution: {integrity: sha512-MADQgmZT1eKjp06jpI2yozxaU9uVs4GzzgSL+uEq7bVcJ9V1ZXQkeGNql1fsSI0gMy1vhvNTNbUqrx+pZfJVmg==}
     engines: {node: '>=18'}
@@ -1172,8 +1180,8 @@ packages:
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
-  '@types/command-line-args@5.2.0':
-    resolution: {integrity: sha512-UuKzKpJJ/Ief6ufIaIzr3A/0XnluX7RvFgwkV89Yzvm77wCh1kFaFmqN8XEnGcN62EuHdedQjEMb8mYxFLGPyA==}
+  '@types/command-line-args@5.2.3':
+    resolution: {integrity: sha512-uv0aG6R0Y8WHZLTamZwtfsDLVRnOa+n+n5rEvFWL5Na5gZ8V2Teab/duDPFzIIIhs9qizDpcavCusCLJZu62Kw==}
 
   '@types/command-line-usage@5.0.2':
     resolution: {integrity: sha512-n7RlEEJ+4x4TS7ZQddTmNSxP+zziEG0TNsMfiRIxcIVXt71ENJ9ojeXmGO3wPoTdn7pJcU2xc3CJYMktNT6DPg==}
@@ -1240,12 +1248,6 @@ packages:
 
   '@types/node@20.19.27':
     resolution: {integrity: sha512-N2clP5pJhB2YnZJ3PIHFk5RkygRX5WO/5f0WC08tp0wd+sv0rsJk3MqWn3CbNmT2J505a5336jaQj4ph1AdMug==}
-
-  '@types/node@20.3.0':
-    resolution: {integrity: sha512-cumHmIAf6On83X7yP+LrsEyUOf/YlociZelmpRYaGFydoaPdxdt80MAbu6vWerQT2COCp2nPvHdsbD7tHn/YlQ==}
-
-  '@types/pad-left@2.1.1':
-    resolution: {integrity: sha512-Xd22WCRBydkGSApl5Bw0PhAOHKSVjNL3E3AwzKaps96IMraPqy5BvZIsBVK6JLwdybUzjHnuWVwpDd0JjTfHXA==}
 
   '@types/qs@6.14.0':
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
@@ -1495,8 +1497,8 @@ packages:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
 
-  apache-arrow@14.0.2:
-    resolution: {integrity: sha512-EBO2xJN36/XoY81nhLcwCJgFwkboDZeyNQ+OPsG7bCoQjc2BT0aTyH/MR6SrL+LirSNz+cYqjGRlupMMlP1aEg==}
+  apache-arrow@15.0.2:
+    resolution: {integrity: sha512-RvwlFxLRpO405PLGffx4N2PYLiF7FD86Q1hHl6J2XCWiq+tTCzpb9ngFw0apFDcXZBMpCzMuwAvA7hjyL1/73A==}
     hasBin: true
 
   append-field@1.0.0:
@@ -3096,10 +3098,6 @@ packages:
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
 
-  pad-left@2.1.0:
-    resolution: {integrity: sha512-HJxs9K9AztdIQIAIa/OIazRAUW/L6B9hbQDxO4X07roW3eo9XqZc2ur9bn1StH9CnbbI9EgvejHQX7CBpCF1QA==}
-    engines: {node: '>=0.10.0'}
-
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
     engines: {node: '>=6'}
@@ -3270,6 +3268,9 @@ packages:
 
   reflect-metadata@0.1.14:
     resolution: {integrity: sha512-ZhYeb6nRaXCfhnndflDK8qI6ZQ/YcWZCISRAWICW9XYqMUwjZM9Z0DveWX/ABN01oxSHwVxKQmxeYZSsm0jh5A==}
+
+  reflect-metadata@0.2.2:
+    resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
 
   repeat-string@1.6.1:
     resolution: {integrity: sha512-PV0dzCYDNfRi1jCDbJzpW7jNNDRuCOG/jI5ctQcGKt/clZD+YcPS3yIlWuTJMmESC8aevCFmWJy5wjAFgNqN6w==}
@@ -3806,15 +3807,6 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  vectordb@0.5.0:
-    resolution: {integrity: sha512-Srafar7DuFWfQPl3I1o5jrjAF95JtbqY4Mo0o3g6oi++787mNwwZT96t8KUIDyXM7kPXelrBvi8SnB/hHu2kXg==}
-    cpu: [x64, arm64]
-    os: [darwin, linux, win32]
-    deprecated: Use @lancedb/lancedb instead.
-    peerDependencies:
-      '@apache-arrow/ts': ^14.0.2
-      apache-arrow: ^14.0.2
-
   walker@1.0.8:
     resolution: {integrity: sha512-ts/8E8l5b7kY0vlWLewOkDXMmPdLcVV4GmOQLyxuSswIJsweeFZtAsMF7k1Nszz+TYBQrlYRmzOnr398y1JemQ==}
 
@@ -3994,19 +3986,6 @@ snapshots:
       node-fetch: 2.7.0
     transitivePeerDependencies:
       - encoding
-
-  '@apache-arrow/ts@14.0.2':
-    dependencies:
-      '@types/command-line-args': 5.2.0
-      '@types/command-line-usage': 5.0.2
-      '@types/node': 20.3.0
-      '@types/pad-left': 2.1.1
-      command-line-args: 5.2.1
-      command-line-usage: 7.0.1
-      flatbuffers: 23.5.26
-      json-bignum: 0.0.3
-      pad-left: 2.1.0
-      tslib: 2.8.1
 
   '@babel/code-frame@7.27.1':
     dependencies:
@@ -4508,22 +4487,38 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@lancedb/vectordb-darwin-arm64@0.4.20':
+  '@lancedb/lancedb-darwin-arm64@0.5.2':
     optional: true
 
-  '@lancedb/vectordb-darwin-x64@0.4.20':
+  '@lancedb/lancedb-darwin-x64@0.5.2':
     optional: true
 
-  '@lancedb/vectordb-linux-arm64-gnu@0.4.20':
+  '@lancedb/lancedb-linux-arm64-gnu@0.5.2':
     optional: true
 
-  '@lancedb/vectordb-linux-x64-gnu@0.4.20':
+  '@lancedb/lancedb-linux-x64-gnu@0.5.2':
     optional: true
 
-  '@lancedb/vectordb-win32-x64-msvc@0.4.20':
+  '@lancedb/lancedb-win32-x64-msvc@0.5.2':
     optional: true
 
-  '@langchain/community@0.3.59(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(zod@3.25.76))(@ibm-cloud/watsonx-ai@1.7.5)(@langchain/core@0.3.80(openai@4.104.0(ws@8.18.3)(zod@3.25.76)))(axios@1.13.2)(handlebars@4.7.8)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(jsonwebtoken@9.0.3)(lodash@4.17.21)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(playwright@1.57.0)(weaviate-client@3.10.0)(ws@8.18.3)':
+  '@lancedb/lancedb@0.5.2(ws@8.18.3)(zod@3.25.76)':
+    dependencies:
+      apache-arrow: 15.0.2
+      openai: 4.104.0(ws@8.18.3)(zod@3.25.76)
+      reflect-metadata: 0.2.2
+    optionalDependencies:
+      '@lancedb/lancedb-darwin-arm64': 0.5.2
+      '@lancedb/lancedb-darwin-x64': 0.5.2
+      '@lancedb/lancedb-linux-arm64-gnu': 0.5.2
+      '@lancedb/lancedb-linux-x64-gnu': 0.5.2
+      '@lancedb/lancedb-win32-x64-msvc': 0.5.2
+    transitivePeerDependencies:
+      - encoding
+      - ws
+      - zod
+
+  '@langchain/community@0.3.59(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(zod@3.25.76))(@ibm-cloud/watsonx-ai@1.7.5)(@lancedb/lancedb@0.5.2(ws@8.18.3)(zod@3.25.76))(@langchain/core@0.3.80(openai@4.104.0(ws@8.18.3)(zod@3.25.76)))(axios@1.13.2)(handlebars@4.7.8)(ibm-cloud-sdk-core@5.4.5)(ignore@5.3.2)(jsonwebtoken@9.0.3)(lodash@4.17.21)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(playwright@1.57.0)(weaviate-client@3.10.0)(ws@8.18.3)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.57.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.18.3)(zod@3.25.76))(zod@3.25.76)
       '@ibm-cloud/watsonx-ai': 1.7.5
@@ -4542,6 +4537,7 @@ snapshots:
       zod: 3.25.76
     optionalDependencies:
       '@browserbasehq/sdk': 2.6.0
+      '@lancedb/lancedb': 0.5.2(ws@8.18.3)(zod@3.25.76)
       ignore: 5.3.2
       jsonwebtoken: 9.0.3
       lodash: 4.17.21
@@ -4647,8 +4643,6 @@ snapshots:
   '@lukeed/csprng@1.1.0': {}
 
   '@microsoft/tsdoc@0.15.1': {}
-
-  '@neon-rs/load@0.0.74': {}
 
   '@nestjs/cli@10.4.9':
     dependencies:
@@ -4847,6 +4841,10 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
+  '@swc/helpers@0.5.18':
+    dependencies:
+      tslib: 2.8.1
+
   '@tokenizer/inflate@0.2.7':
     dependencies:
       debug: 4.4.3
@@ -4891,7 +4889,7 @@ snapshots:
       '@types/connect': 3.4.38
       '@types/node': 20.19.27
 
-  '@types/command-line-args@5.2.0': {}
+  '@types/command-line-args@5.2.3': {}
 
   '@types/command-line-usage@5.0.2': {}
 
@@ -4972,10 +4970,6 @@ snapshots:
   '@types/node@20.19.27':
     dependencies:
       undici-types: 6.21.0
-
-  '@types/node@20.3.0': {}
-
-  '@types/pad-left@2.1.1': {}
 
   '@types/qs@6.14.0': {}
 
@@ -5281,17 +5275,16 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
-  apache-arrow@14.0.2:
+  apache-arrow@15.0.2:
     dependencies:
-      '@types/command-line-args': 5.2.0
+      '@swc/helpers': 0.5.18
+      '@types/command-line-args': 5.2.3
       '@types/command-line-usage': 5.0.2
-      '@types/node': 20.3.0
-      '@types/pad-left': 2.1.1
+      '@types/node': 20.19.27
       command-line-args: 5.2.1
       command-line-usage: 7.0.1
       flatbuffers: 23.5.26
       json-bignum: 0.0.3
-      pad-left: 2.1.0
       tslib: 2.8.1
 
   append-field@1.0.0: {}
@@ -7118,10 +7111,6 @@ snapshots:
 
   package-json-from-dist@1.0.1: {}
 
-  pad-left@2.1.0:
-    dependencies:
-      repeat-string: 1.6.1
-
   parent-module@1.0.1:
     dependencies:
       callsites: 3.1.0
@@ -7279,6 +7268,8 @@ snapshots:
       picomatch: 2.3.1
 
   reflect-metadata@0.1.14: {}
+
+  reflect-metadata@0.2.2: {}
 
   repeat-string@1.6.1: {}
 
@@ -7779,21 +7770,6 @@ snapshots:
   validator@13.15.26: {}
 
   vary@1.1.2: {}
-
-  vectordb@0.5.0(@apache-arrow/ts@14.0.2)(apache-arrow@14.0.2):
-    dependencies:
-      '@apache-arrow/ts': 14.0.2
-      '@neon-rs/load': 0.0.74
-      apache-arrow: 14.0.2
-      axios: 1.13.2(debug@4.4.3)
-    optionalDependencies:
-      '@lancedb/vectordb-darwin-arm64': 0.4.20
-      '@lancedb/vectordb-darwin-x64': 0.4.20
-      '@lancedb/vectordb-linux-arm64-gnu': 0.4.20
-      '@lancedb/vectordb-linux-x64-gnu': 0.4.20
-      '@lancedb/vectordb-win32-x64-msvc': 0.4.20
-    transitivePeerDependencies:
-      - debug
 
   walker@1.0.8:
     dependencies:

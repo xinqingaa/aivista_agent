@@ -163,6 +163,15 @@ VECTOR_DB_PATH=./data/lancedb
 
 # 向量维度（可选，默认: 1536，对应 OpenAI embedding）
 VECTOR_DIMENSION=1536
+
+# RAG 检索配置（可选）
+# RAG 最小相似度阈值（默认: 0.4，范围: 0.0-1.0）
+# 降低此值可以提高召回率，但可能降低精确度
+RAG_MIN_SIMILARITY=0.4
+
+# RAG 检索数量限制（默认: 3）
+# 最多返回多少条相关风格
+RAG_SEARCH_LIMIT=3
 ```
 
 ### 性能配置
@@ -289,7 +298,9 @@ SESSION_TIMEOUT_MINUTES=30
   - `executor.node.ts`: 任务执行（文生图、局部重绘、参数调整）
   - `critic.node.ts`: 质量审查
 
-**详细设计参考：** `AGENT_WORKFLOW_DESIGN.md`
+**详细设计参考：** 
+- `AGENT_WORKFLOW_DESIGN.md` - Agent 工作流设计文档
+- `WORKFLOW_GUIDE.md` - 完整工作流程指南（包含流程图、节点详解、实际案例）
 
 ### 3.2 Knowledge 模块 (`src/knowledge/`)
 
@@ -465,7 +476,9 @@ async *executeWorkflow(initialState: AgentState) {
 
 ### 5.2 LangGraph 状态图
 
-**详细设计参考：** `AGENT_WORKFLOW_DESIGN.md`, `../../docs/agent_state_machine.md`
+**详细设计参考：** 
+- `AGENT_WORKFLOW_DESIGN.md` - Agent 工作流设计文档
+- `WORKFLOW_GUIDE.md` - 完整工作流程指南（包含流程图、节点详解、实际案例）, `../../docs/agent_state_machine.md`
 
 **核心流程：**
 ```
@@ -534,6 +547,7 @@ Planner → RAG → Executor → Critic → GenUI → END
 - **架构设计:** `../../docs/architecture.md`
 - **GenUI 协议:** `../../docs/gen_ui_protocol.md`
 - **Agent 工作流设计:** `AGENT_WORKFLOW_DESIGN.md`
+- **完整工作流程指南:** `WORKFLOW_GUIDE.md` - 包含流程图、节点详解、数据流转、SSE 事件流、实际案例和知识库内容展示
 - **SSE 流式设计:** `SSE_STREAMING_DESIGN.md`
 - **错误处理设计:** `ERROR_HANDLING_DESIGN.md`
 - **数据模型设计:** `DATA_MODELS_DESIGN.md`

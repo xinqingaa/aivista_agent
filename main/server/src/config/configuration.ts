@@ -85,6 +85,15 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   CORS_ORIGIN?: string;
+
+  // RAG 检索配置
+  @IsNumber()
+  @IsOptional()
+  RAG_MIN_SIMILARITY?: number;
+
+  @IsNumber()
+  @IsOptional()
+  RAG_SEARCH_LIMIT?: number;
 }
 
 export function validateEnvironment(config: Record<string, unknown>) {

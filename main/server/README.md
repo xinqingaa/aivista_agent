@@ -115,6 +115,62 @@ SSE 流式端点，接收用户输入，返回 Agent 处理结果。
 - `error`: 错误信息
 - `stream_end`: 流结束
 
+### 知识库管理 API
+
+#### GET /api/knowledge/styles
+
+获取所有风格列表。
+
+**示例：**
+```bash
+curl http://localhost:3000/api/knowledge/styles
+```
+
+#### GET /api/knowledge/styles/:id
+
+获取单个风格详情。
+
+**示例：**
+```bash
+curl http://localhost:3000/api/knowledge/styles/style_001
+```
+
+#### GET /api/knowledge/search?query=xxx
+
+测试检索功能。
+
+**示例：**
+```bash
+curl "http://localhost:3000/api/knowledge/search?query=赛博朋克"
+```
+
+#### GET /api/knowledge/stats
+
+获取知识库统计信息。
+
+**示例：**
+```bash
+curl http://localhost:3000/api/knowledge/stats
+```
+
+## 知识库快速参考
+
+系统启动时会自动初始化 5 条默认风格数据到向量数据库。知识库包含以下风格：
+
+- **Cyberpunk（赛博朋克）**: 霓虹灯、高科技、低生活、未来主义城市背景
+- **Watercolor（水彩）**: 柔和的 pastel 色彩、艺术流动性、纸张纹理
+- **Minimalist（极简）**: 简洁线条、简单构图、留白、单色调
+- **Oil Painting（油画）**: 丰富纹理、大胆笔触、古典艺术、鲜艳色彩
+- **Anime（动漫）**: 日式动画、鲜艳色彩、表情丰富的人物、详细背景
+
+**查看知识库内容**：
+- 使用管理 API：`GET /api/knowledge/styles`
+- 查看完整文档：[docs/WORKFLOW_GUIDE.md](docs/WORKFLOW_GUIDE.md)（包含完整数据表格）
+- 知识库初始化文档：[docs/KNOWLEDGE_BASE_INIT.md](docs/KNOWLEDGE_BASE_INIT.md)
+
+**工作流程文档**：
+- 完整工作流程说明：[docs/WORKFLOW_GUIDE.md](docs/WORKFLOW_GUIDE.md)
+
 ## 项目结构
 
 ```

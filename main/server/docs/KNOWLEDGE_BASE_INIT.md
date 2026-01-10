@@ -4,7 +4,94 @@
 
 本文档定义知识库（向量数据库）的初始化数据格式、内容和初始化流程，确保项目启动时能够自动加载风格数据。
 
-## 2. 初始化数据必要性
+## 2. 知识库内容
+
+系统启动时会自动初始化 5 条默认风格数据到向量数据库（LanceDB）。以下是完整的知识库内容：
+
+| ID | 风格名称 | 中文名称 | Prompt | 描述 | 标签 | 分类 | 流行度 |
+|----|---------|---------|--------|------|------|------|--------|
+| style_001 | Cyberpunk | 赛博朋克 | neon lights, high tech, low life, dark city background, futuristic, cyberpunk aesthetic, vibrant colors, urban decay | 赛博朋克风格：霓虹灯、高科技、低生活、未来主义城市背景 | cyberpunk, futuristic, neon, urban, sci-fi | digital | 85 |
+| style_002 | Watercolor | 水彩 | soft pastel colors, artistic fluidity, paper texture, watercolor painting, gentle brushstrokes, translucent layers, artistic expression | 水彩画风格：柔和的 pastel 色彩、艺术流动性、纸张纹理 | watercolor, artistic, pastel, painting, traditional | traditional | 75 |
+| style_003 | Minimalist | 极简 | minimalist design, clean lines, simple composition, negative space, monochromatic, geometric shapes, modern aesthetic | 极简主义风格：简洁线条、简单构图、留白、单色调 | minimalist, clean, simple, modern, geometric | digital | 70 |
+| style_004 | Oil Painting | 油画 | oil painting, rich textures, bold brushstrokes, classical art, vibrant colors, canvas texture, artistic masterpiece | 油画风格：丰富纹理、大胆笔触、古典艺术、鲜艳色彩 | oil, painting, classical, texture, traditional | traditional | 80 |
+| style_005 | Anime | 动漫 | anime style, manga art, vibrant colors, expressive characters, detailed backgrounds, Japanese animation, cel-shading | 动漫风格：日式动画、鲜艳色彩、表情丰富的人物、详细背景 | anime, manga, japanese, cartoon, colorful | digital | 90 |
+
+**数据来源**: `main/server/src/knowledge/data/initial-styles.ts`
+
+**数据库位置**: `main/server/data/lancedb/styles.lance/`
+
+## 3. 本地数据库查看方法
+
+### 3.1 方法 1：使用管理 API（推荐）
+
+**查看所有风格**:
+```bash
+GET http://localhost:3000/api/knowledge/styles
+```
+
+**查看单个风格**:
+```bash
+GET http://localhost:3000/api/knowledge/styles/style_001
+```
+
+**测试检索功能**:
+```bash
+GET http://localhost:3000/api/knowledge/search?query=赛博朋克
+```
+
+**查看统计信息**:
+```bash
+GET http://localhost:3000/api/knowledge/stats
+```
+
+返回所有风格数据（JSON 格式），可以在浏览器、Postman、Apifox 中直接查看。
+
+### 3.2 方法 2：查看数据库文件
+
+**数据库路径**: `main/server/data/lancedb/styles.lance/`
+
+**文件结构**:
+```
+styles.lance/
+├── _latest.manifest          # 最新版本的清单文件
+├── _versions/                # 版本历史
+│   └── 1.manifest
+└── _transactions/            # 事务日志
+    └── 0-{uuid}.txn
+```
+
+**注意**: LanceDB 文件是二进制格式（基于 Apache Arrow），不建议直接查看文件内容。建议使用管理 API 查看。
+
+### 3.3 方法 3：使用代码查看
+
+查看初始化数据源文件:
+```typescript
+// main/server/src/knowledge/data/initial-styles.ts
+export const INITIAL_STYLES: StyleData[] = [
+  // ... 5 条风格数据
+];
+```
+
+### 3.4 验证数据是否正确初始化
+
+**方法 1**: 检查启动日志
+```
+[KnowledgeService] Knowledge base initialized successfully with 5 styles
+```
+
+**方法 2**: 调用统计 API
+```bash
+curl http://localhost:3000/api/knowledge/stats
+# 返回: { "count": 5, "dimension": 1536, ... }
+```
+
+**方法 3**: 检查数据库文件是否存在
+```bash
+ls -la main/server/data/lancedb/styles.lance/
+# 应该看到 _latest.manifest 等文件
+```
+
+## 4. 初始化数据必要性
 
 **需要初始化数据。** 根据产品规格（`product_spec.md`），项目启动时需要自动写入 5 条风格数据到 LanceDB，用于 RAG 检索功能。
 

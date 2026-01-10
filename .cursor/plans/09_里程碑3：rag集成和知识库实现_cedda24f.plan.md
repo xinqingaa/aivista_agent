@@ -1,33 +1,3 @@
----
-name: 里程碑3：RAG集成和知识库实现
-overview: 实现RAG Node、KnowledgeService（LanceDB封装）、向量嵌入服务，集成到LangGraph工作流，并更新相关文档以匹配实现。
-todos:
-  - id: update-agent-state
-    content: 更新 AgentState 接口，将 enhancedPrompt 改为对象类型
-    status: completed
-  - id: create-embedding-service
-    content: 创建 EmbeddingService，实现向量嵌入生成功能
-    status: completed
-  - id: create-knowledge-service
-    content: 创建 KnowledgeService，实现 LanceDB 封装和向量检索
-    status: completed
-  - id: create-knowledge-module
-    content: 创建 KnowledgeModule，注册服务并实现启动时初始化
-    status: completed
-  - id: create-rag-node
-    content: 实现 RAG Node，集成风格检索和 Prompt 增强逻辑
-    status: completed
-  - id: update-agent-graph
-    content: 更新状态图，添加 RAG 节点和 enhancedPrompt 通道
-    status: completed
-  - id: update-executor-node
-    content: 更新 Executor Node，使用 enhancedPrompt.final
-    status: completed
-  - id: update-documents
-    content: 更新 AGENT_WORKFLOW_DESIGN.md 和 PROMPT_README.md
-    status: completed
----
-
 # 里程碑3：记忆与协议 (Memory & Protocol)
 
 ## 任务概述
@@ -168,6 +138,8 @@ async execute(state: AgentState): Promise<Partial<AgentState>> {
 **工作流变更：**
 
 ```typescript
+
+
 // 之前：planner → executor
 // 现在：planner → rag → executor
 ```
