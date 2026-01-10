@@ -65,21 +65,23 @@ export class RagNode {
 
     try {
       // 1. 构建检索查询
-      // 优先使用 style，其次是 subject，最后是原始文本
+      // 优化策略：优先使用风格关键词（权重最高），减少通用词的干扰
       let queryText = '';
       let styleEnglish = '';
 
-      // 如果存在风格关键词，尝试映射为英文
+      // 如果存在风格关键词，优先使用风格进行检索
       if (state.intent.style) {
         styleEnglish = this.styleMap[state.intent.style] || '';
-        // 构建中英文混合查询
+        // 构建加权查询：风格关键词（重复2次增加权重）+ 英文风格名称 + 主题
+        // 不包含原始文本中的通用词（如"生成"、"一只"等），避免稀释风格关键词
         const queryParts = [
-          state.intent.style,
-          styleEnglish,
-          state.intent.subject,
-          state.userInput.text,
+          state.intent.style, // 中文风格名称
+          styleEnglish, // 英文风格名称（如果存在）
+          styleEnglish, // 重复一次增加权重
+          state.intent.subject, // 主题（如"猫"）
         ].filter(Boolean);
         queryText = queryParts.join(' ');
+        this.logger.debug(`RAG Node: Using style-focused query: "${queryText}"`);
       } else {
         // 如果没有风格，使用 subject 和原始文本
         const queryParts = [
@@ -119,22 +121,44 @@ export class RagNode {
         minSimilarity,
       });
 
-      // 4. 如果第一次检索失败且存在中文风格名称，尝试仅使用英文风格名称再次检索
-      if (results.length === 0 && styleEnglish) {
-        this.logger.debug(`RAG Node: First search failed, retrying with English style name: "${styleEnglish}"`);
-        const retryQuery = [styleEnglish, state.intent.subject, state.userInput.text]
-          .filter(Boolean)
-          .join(' ');
-        results = await this.knowledgeService.search(retryQuery, {
-          limit: searchLimit,
-          minSimilarity,
-        });
-        if (results.length > 0) {
-          this.logger.log(`RAG Node: Retry search succeeded with English style name`);
+      // 4. 如果用户指定了特定风格，优先匹配该风格（过滤掉不相关的风格）
+      if (state.intent.style && styleEnglish && results.length > 0) {
+        const matchedStyle = results.find(
+          (r) => r.style.toLowerCase() === styleEnglish.toLowerCase(),
+        );
+        if (matchedStyle) {
+          // 如果找到了匹配的风格，优先使用它，但仍保留其他高相似度的风格
+          // 但会过滤掉明显不相关的风格（相似度低于匹配风格相似度的 0.8 倍）
+          const matchedSimilarity = matchedStyle.similarity;
+          const threshold = matchedSimilarity * 0.8;
+          results = results.filter((r) => r.similarity >= threshold);
+          // 确保匹配的风格排在第一位
+          results.sort((a, b) => {
+            if (a.style.toLowerCase() === styleEnglish.toLowerCase()) return -1;
+            if (b.style.toLowerCase() === styleEnglish.toLowerCase()) return 1;
+            return b.similarity - a.similarity;
+          });
+          this.logger.debug(
+            `RAG Node: Filtered results to prioritize matched style "${styleEnglish}", filtered count: ${results.length}`,
+          );
         }
       }
 
-      // 3. 构建增强后的 Prompt
+      // 5. 如果第一次检索失败且存在中文风格名称，尝试仅使用英文风格名称再次检索
+      if (results.length === 0 && styleEnglish) {
+        this.logger.debug(
+          `RAG Node: First search failed, retrying with English style name only: "${styleEnglish}"`,
+        );
+        results = await this.knowledgeService.search(styleEnglish, {
+          limit: searchLimit,
+          minSimilarity: minSimilarity * 0.8, // 降低阈值以便找到结果
+        });
+        if (results.length > 0) {
+          this.logger.log(`RAG Node: Retry search succeeded with English style name only`);
+        }
+      }
+
+      // 6. 构建增强后的 Prompt
       const originalPrompt = state.userInput.text;
       let finalPrompt = originalPrompt;
 

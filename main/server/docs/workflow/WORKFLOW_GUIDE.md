@@ -41,6 +41,8 @@ graph LR
 
 **数据库位置**: `main/server/data/lancedb/styles.lance/`
 
+**详细说明**: 查看 [知识库初始化文档](../knowledge/KNOWLEDGE_BASE_INIT.md) 了解数据库查看方法、初始化流程和详细配置。
+
 ## 3. 节点详解
 
 ### 3.1 Planner Node（意图识别节点）
@@ -134,13 +136,14 @@ graph LR
 **查询文本构建策略**:
 1. 优先使用 `intent.style`（如果存在）
 2. 如果有中文风格名称，映射为英文（如："赛博朋克" → "Cyberpunk"）
-3. 组合：`${style} ${styleEnglish} ${subject} ${originalText}`
+3. 优化策略：风格关键词重复以增加权重，减少通用词干扰
 4. 如果第一次检索失败，尝试仅使用英文风格名称再次检索
+5. 如果用户指定了特定风格，优先匹配该风格并过滤不相关结果
 
 **示例**:
 - 输入: `{ intent: { style: '赛博朋克', subject: '猫', prompt: '...' } }`
-- 查询文本: `"赛博朋克 Cyberpunk 猫"`
-- 检索结果: 匹配到 `style_001 (Cyberpunk)`，相似度 `0.85`
+- 查询文本: `"赛博朋克 Cyberpunk Cyberpunk 猫"`（风格关键词重复增加权重）
+- 检索结果: 匹配到 `style_001 (Cyberpunk)`，相似度 `0.48`
 - 输出: `{ enhancedPrompt: { original: '...', retrieved: [...], final: '... + neon lights, high tech, ...' } }`
 
 **检索失败处理**:
@@ -200,6 +203,10 @@ graph LR
   ],
   thoughtLogs: [{
     node: 'executor',
+    message: '开始执行任务：生成图片...',
+    timestamp: number
+  }, {
+    node: 'executor',
     message: '任务执行完成：生成图片',
     timestamp: number
   }]
@@ -250,7 +257,7 @@ graph LR
     retrieved: [{
       style: 'Cyberpunk',
       prompt: 'neon lights, high tech, ...',
-      similarity: 0.85
+      similarity: 0.48
     }],
     final: "生成一只赛博朋克风格的猫, neon lights, high tech, low life, dark city background, ..."
   },
@@ -299,6 +306,7 @@ graph LR
 |---------|------|---------|
 | `connection` | 连接确认 | `{ status: 'connected', sessionId: string }` |
 | `thought_log` | 思考日志（节点执行过程） | `{ type: 'thought_log', timestamp: number, data: { node: string, message: string, progress?: number } }` |
+| `enhanced_prompt` | 增强后的 Prompt 信息 | `{ type: 'enhanced_prompt', timestamp: number, data: { original: string, retrieved: Array, final: string } }` |
 | `gen_ui_component` | GenUI 组件（前端渲染指令） | `{ type: 'gen_ui_component', timestamp: number, data: GenUIComponent }` |
 | `error` | 错误信息 | `{ type: 'error', timestamp: number, data: { code: string, message: string, node?: string } }` |
 | `stream_end` | 流结束 | `{ type: 'stream_end', timestamp: number, data: { sessionId: string, summary: string } }` |
@@ -310,22 +318,24 @@ graph LR
    ↓
 2. thought_log (planner: "已识别意图：generate_image...")
    ↓
-3. thought_log (rag: "检索到 1 条相关风格：Cyberpunk")
+3. thought_log (rag: "检索到 3 条相关风格：Cyberpunk、Anime、Minimalist")
    ↓
-4. thought_log (executor: "开始执行任务：生成图片...")
+4. enhanced_prompt (包含检索到的风格和相似度)
    ↓
-5. gen_ui_component (AgentMessage)
+5. thought_log (executor: "开始执行任务：生成图片...")
    ↓
-6. gen_ui_component (ImageView)
+6. gen_ui_component (AgentMessage)
    ↓
-7. gen_ui_component (ActionPanel)
+7. gen_ui_component (ImageView)
    ↓
-8. thought_log (executor: "任务执行完成：生成图片")
+8. gen_ui_component (ActionPanel)
    ↓
-9. stream_end
+9. thought_log (executor: "任务执行完成：生成图片")
+   ↓
+10. stream_end
 ```
 
-### 5.3 实际案例：完整 SSE 响应
+### 5.3 完整 SSE 响应示例
 
 **请求**:
 ```bash
@@ -337,251 +347,44 @@ Content-Type: application/json
 }
 ```
 
-**SSE 响应**:
+**SSE 响应**（按顺序）:
 ```
 event: connection
-data: {"status":"connected","sessionId":"session_1234567890"}
+data: {"status":"connected","sessionId":"session_1768030682914"}
 
 event: thought_log
-data: {"type":"thought_log","timestamp":1234567891,"data":{"node":"planner","message":"已识别意图：generate_image。主题：猫，风格：赛博朋克"}}
+data: {"type":"thought_log","timestamp":1768030684337,"data":{"node":"planner","message":"已识别意图：generate_image。主题：猫，风格：赛博朋克"}}
 
 event: thought_log
-data: {"type":"thought_log","timestamp":1234567892,"data":{"node":"rag","message":"检索到 1 条相关风格：Cyberpunk"}}
+data: {"type":"thought_log","timestamp":1768030684429,"data":{"node":"rag","message":"检索到 3 条相关风格：Cyberpunk、Anime、Minimalist"}}
+
+event: enhanced_prompt
+data: {"type":"enhanced_prompt","timestamp":1768030684429,"data":{"original":"生成一只赛博朋克风格的猫","retrieved":[{"style":"Cyberpunk","prompt":"neon lights, high tech...","similarity":0.48},{"style":"Anime","prompt":"anime style...","similarity":0.41},{"style":"Minimalist","prompt":"minimalist design...","similarity":0.41}],"final":"生成一只赛博朋克风格的猫, neon lights, high tech, low life, dark city background..."}}
 
 event: thought_log
-data: {"type":"thought_log","timestamp":1234567893,"data":{"node":"executor","message":"开始执行任务：生成图片...","progress":50}}
+data: {"type":"thought_log","timestamp":1768030687029,"data":{"node":"executor","message":"开始执行任务：生成图片...","progress":50}}
 
 event: gen_ui_component
-data: {"type":"gen_ui_component","timestamp":1234567895,"data":{"widgetType":"AgentMessage","props":{"state":"success","text":"已为您生成图片完成！","isThinking":false}}}
+data: {"type":"gen_ui_component","timestamp":1768030687029,"data":{"widgetType":"AgentMessage","props":{"state":"success","text":"已为您生成图片完成！","isThinking":false}}}
 
 event: gen_ui_component
-data: {"type":"gen_ui_component","timestamp":1234567895,"data":{"widgetType":"ImageView","props":{"imageUrl":"https://picsum.photos/seed/666531825/800/600","width":800,"height":600,"fit":"contain"}}}
+data: {"type":"gen_ui_component","timestamp":1768030687029,"data":{"widgetType":"ImageView","props":{"imageUrl":"https://picsum.photos/seed/1489457742/800/600","width":800,"height":600,"fit":"contain"}}}
 
 event: gen_ui_component
-data: {"type":"gen_ui_component","timestamp":1234567895,"data":{"widgetType":"ActionPanel","props":{"actions":[{"id":"regenerate_btn","label":"重新生成","type":"button","buttonType":"primary"}]}}}
+data: {"type":"gen_ui_component","timestamp":1768030687029,"data":{"widgetType":"ActionPanel","props":{"actions":[{"id":"regenerate_btn","label":"重新生成","type":"button","buttonType":"primary"}]}}}
 
 event: thought_log
-data: {"type":"thought_log","timestamp":1234567896,"data":{"node":"executor","message":"任务执行完成：生成图片"}}
+data: {"type":"thought_log","timestamp":1768030687029,"data":{"node":"executor","message":"任务执行完成：生成图片"}}
 
 event: stream_end
-data: {"type":"stream_end","timestamp":1234567897,"data":{"sessionId":"session_1234567890","summary":"任务完成"}}
+data: {"type":"stream_end","timestamp":1768030687039,"data":{"sessionId":"session_1768030682914","summary":"任务完成"}}
 ```
 
-## 6. 实际案例：完整流程追踪
+**详细说明**: 查看 [SSE 流式设计文档](./SSE_STREAMING_DESIGN.md) 了解 SSE 协议的详细设计和实现。
 
-### 案例：生成一只赛博朋克风格的猫
+## 6. 配置说明
 
-#### 步骤 1: 用户请求
-```json
-POST /api/agent/chat
-{
-  "text": "生成一只赛博朋克风格的猫"
-}
-```
-
-#### 步骤 2: Planner Node 执行
-**输入**: `{ userInput: { text: "生成一只赛博朋克风格的猫" } }`
-
-**LLM 调用**:
-```
-System: 你是一个专业的 AI 图像生成助手...
-User: 生成一只赛博朋克风格的猫
-```
-
-**输出**:
-```json
-{
-  "intent": {
-    "action": "generate_image",
-    "subject": "猫",
-    "style": "赛博朋克",
-    "prompt": "a cyberpunk style cat",
-    "confidence": 0.9,
-    "reasoning": "用户想要生成一张赛博朋克风格的猫的图片"
-  },
-  "thoughtLogs": [{
-    "node": "planner",
-    "message": "已识别意图：generate_image。主题：猫，风格：赛博朋克",
-    "timestamp": 1234567891
-  }]
-}
-```
-
-#### 步骤 3: RAG Node 执行
-**输入**: `{ intent: { style: "赛博朋克", subject: "猫", ... } }`
-
-**查询构建**:
-1. 检测到中文风格名称："赛博朋克"
-2. 映射为英文："Cyberpunk"
-3. 构建查询文本：`"赛博朋克 Cyberpunk 猫 生成一只赛博朋克风格的猫"`
-
-**向量检索**:
-- 查询向量维度: 1536（使用 text-embedding-v1 或 text-embedding-ada-002）
-- 检索结果:
-  ```
-  [
-    {
-      style: "Cyberpunk",
-      prompt: "neon lights, high tech, low life, dark city background, ...",
-      similarity: 0.85  // 超过阈值 0.4，保留
-    }
-  ]
-  ```
-
-**输出**:
-```json
-{
-  "enhancedPrompt": {
-    "original": "生成一只赛博朋克风格的猫",
-    "retrieved": [{
-      "style": "Cyberpunk",
-      "prompt": "neon lights, high tech, low life, dark city background, futuristic, cyberpunk aesthetic, vibrant colors, urban decay",
-      "similarity": 0.85
-    }],
-    "final": "生成一只赛博朋克风格的猫, neon lights, high tech, low life, dark city background, futuristic, cyberpunk aesthetic, vibrant colors, urban decay"
-  },
-  "thoughtLogs": [{
-    "node": "rag",
-    "message": "检索到 1 条相关风格：Cyberpunk",
-    "timestamp": 1234567892
-  }]
-}
-```
-
-#### 步骤 4: Executor Node 执行
-**输入**: `{ intent: {...}, enhancedPrompt: { final: "..." } }`
-
-**Prompt 选择**:
-- 使用 `enhancedPrompt.final`（已增强的 Prompt）
-
-**图片生成**:
-- 计算 Prompt 哈希值: `666531825`
-- 生成图片 URL: `https://picsum.photos/seed/666531825/800/600`
-- 模拟延迟: 2000ms
-
-**输出**:
-```json
-{
-  "generatedImageUrl": "https://picsum.photos/seed/666531825/800/600",
-  "uiComponents": [
-    {
-      "widgetType": "AgentMessage",
-      "props": {
-        "state": "success",
-        "text": "已为您生成图片完成！",
-        "isThinking": false
-      },
-      "timestamp": 1234567895
-    },
-    {
-      "widgetType": "ImageView",
-      "props": {
-        "imageUrl": "https://picsum.photos/seed/666531825/800/600",
-        "width": 800,
-        "height": 600,
-        "fit": "contain"
-      },
-      "timestamp": 1234567895
-    },
-    {
-      "widgetType": "ActionPanel",
-      "props": {
-        "actions": [{
-          "id": "regenerate_btn",
-          "label": "重新生成",
-          "type": "button",
-          "buttonType": "primary"
-        }]
-      },
-      "timestamp": 1234567895
-    }
-  ],
-  "thoughtLogs": [{
-    "node": "executor",
-    "message": "任务执行完成：生成图片",
-    "timestamp": 1234567896
-  }]
-}
-```
-
-#### 步骤 5: 前端渲染
-前端接收到 GenUI 组件后，依次渲染：
-1. `AgentMessage` - 显示成功消息
-2. `ImageView` - 显示生成的图片
-3. `ActionPanel` - 显示操作按钮（重新生成）
-
-## 7. 本地数据库查看方法
-
-### 7.1 方法 1：使用管理 API（推荐）
-
-**查看所有风格**:
-```bash
-GET http://localhost:3000/api/knowledge/styles
-```
-
-**查看单个风格**:
-```bash
-GET http://localhost:3000/api/knowledge/styles/style_001
-```
-
-**测试检索功能**:
-```bash
-GET http://localhost:3000/api/knowledge/search?query=赛博朋克
-```
-
-**查看统计信息**:
-```bash
-GET http://localhost:3000/api/knowledge/stats
-```
-
-### 7.2 方法 2：查看数据库文件
-
-**数据库路径**: `main/server/data/lancedb/styles.lance/`
-
-**文件结构**:
-```
-styles.lance/
-├── _latest.manifest          # 最新版本的清单文件
-├── _versions/                # 版本历史
-│   └── 1.manifest
-└── _transactions/            # 事务日志
-    └── 0-{uuid}.txn
-```
-
-**注意**: LanceDB 文件是二进制格式（基于 Apache Arrow），不建议直接查看文件内容。建议使用管理 API 或 LanceDB 工具查看。
-
-### 7.3 方法 3：使用代码查看
-
-查看初始化数据源文件:
-```typescript
-// main/server/src/knowledge/data/initial-styles.ts
-export const INITIAL_STYLES: StyleData[] = [
-  // ... 5 条风格数据
-];
-```
-
-### 7.4 验证数据是否正确初始化
-
-**方法 1**: 检查启动日志
-```
-[KnowledgeService] Knowledge base initialized successfully with 5 styles
-```
-
-**方法 2**: 调用统计 API
-```bash
-curl http://localhost:3000/api/knowledge/stats
-# 返回: { "count": 5, "dimension": 1536, ... }
-```
-
-**方法 3**: 检查数据库文件是否存在
-```bash
-ls -la main/server/data/lancedb/styles.lance/
-# 应该看到 _latest.manifest 等文件
-```
-
-## 8. 配置说明
-
-### 8.1 RAG 检索配置
+### 6.1 RAG 检索配置
 
 **环境变量**:
 ```bash
@@ -594,7 +397,7 @@ RAG_SEARCH_LIMIT=3
 
 **配置位置**: `main/server/.env`
 
-### 8.2 向量数据库配置
+### 6.2 向量数据库配置
 
 ```bash
 # 向量数据库路径
@@ -604,7 +407,7 @@ VECTOR_DB_PATH=./data/lancedb
 VECTOR_DIMENSION=1536
 ```
 
-### 8.3 Embedding 服务配置
+### 6.3 Embedding 服务配置
 
 ```bash
 # Embedding 提供商（可选，默认使用 LLM_PROVIDER）
@@ -617,9 +420,39 @@ ALIYUN_EMBEDDING_MODEL=text-embedding-v1
 EMBEDDING_MODEL=text-embedding-ada-002
 ```
 
-## 9. 故障排查
+## 7. 实际运行效果
 
-### 9.1 RAG 检索失败
+### 7.1 RAG 检索效果分析
+
+**检索结果示例**（查询: "赛博朋克"）:
+- ✅ **Cyberpunk** (相似度: 0.48) - 完全匹配用户意图
+- ⚠️ **Anime** (相似度: 0.41) - 相关性较低，可能是因为查询文本中包含"猫"等通用词
+- ⚠️ **Minimalist** (相似度: 0.41) - 相关性较低
+
+**已实施的优化**:
+1. **改进查询文本构建**: 优先使用风格关键词（重复以增加权重），减少通用词（如"生成"、"一只"）的干扰
+2. **添加结果过滤**: 如果用户指定了特定风格，优先匹配该风格，并过滤掉相似度明显低于匹配风格的结果
+3. **优化重试机制**: 如果第一次检索失败，尝试仅使用英文风格名称进行检索
+
+### 7.2 工作流符合性验证
+
+**符合 Milestone 3 设计**:
+- ✅ Planner → RAG → Executor 节点顺序正确
+- ✅ RAG 检索功能正常工作
+- ✅ SSE 事件流推送完整
+- ✅ 数据流转符合设计
+
+**已修复的问题**:
+- ✅ Executor 节点日志顺序已修复（先推送"开始执行任务"，后推送"任务执行完成"）
+- ✅ 添加了 `enhanced_prompt` 事件，前端可以查看检索到的风格详情
+
+**待优化**:
+- ⚠️ RAG 检索结果相关性可以进一步提升（已添加过滤逻辑，需要测试验证效果）
+- ⚠️ 缺少 Critic Node（Milestone 4 计划实现）
+
+## 8. 故障排查
+
+### 8.1 RAG 检索失败
 
 **症状**: 日志显示 `"未检索到匹配的风格，使用原始 Prompt"`
 
@@ -635,7 +468,7 @@ EMBEDDING_MODEL=text-embedding-ada-002
 3. 测试检索功能：`GET /api/knowledge/search?query=赛博朋克`
 4. 检查 Embedding 服务配置
 
-### 9.2 知识库初始化失败
+### 8.2 知识库初始化失败
 
 **症状**: 启动时日志显示 `"Failed to initialize knowledge base"`
 
@@ -649,7 +482,7 @@ EMBEDDING_MODEL=text-embedding-ada-002
 2. 检查数据库路径权限
 3. 查看详细错误日志
 
-### 9.3 意图识别失败
+### 8.3 意图识别失败
 
 **症状**: `intent.action === 'unknown'`
 
@@ -663,17 +496,19 @@ EMBEDDING_MODEL=text-embedding-ada-002
 2. 查看 Planner Node 的详细日志
 3. 尝试更明确的用户输入
 
-## 10. 相关文档
+## 9. 相关文档
 
-- **后端实施文档**: [PROMPT_README.md](./PROMPT_README.md)
 - **工作流设计**: [AGENT_WORKFLOW_DESIGN.md](./AGENT_WORKFLOW_DESIGN.md)
-- **知识库初始化**: [KNOWLEDGE_BASE_INIT.md](./KNOWLEDGE_BASE_INIT.md)
 - **SSE 流式设计**: [SSE_STREAMING_DESIGN.md](./SSE_STREAMING_DESIGN.md)
-- **数据模型**: [DATA_MODELS_DESIGN.md](./DATA_MODELS_DESIGN.md)
+- **知识库初始化**: [../knowledge/KNOWLEDGE_BASE_INIT.md](../knowledge/KNOWLEDGE_BASE_INIT.md)
+- **后端实施文档**: [../design/PROMPT_README.md](../design/PROMPT_README.md)
+- **数据模型设计**: [../design/DATA_MODELS_DESIGN.md](../design/DATA_MODELS_DESIGN.md)
 
-## 11. 未来计划（Milestone 4）
+## 10. 未来计划（Milestone 4）
 
 - **Critic Node**: 质量审查节点，检查生成结果质量
-- **循环机制**: 如果质量不达标，重新执行 Executor
+- **循环机制**: 如果质量不达标，重新执行 Executor（最多 3 次重试）
 - **更多风格**: 支持动态添加和管理风格数据
-- **真实生图**: 集成真实的 AI 图像生成服务
+- **真实生图**: 集成真实的 AI 图像生成服务（Midjourney、Stable Diffusion 等）
+- **工作流元数据**: 推送节点执行时间、总耗时等性能指标
+- **智能过滤**: 进一步优化 RAG 检索结果，根据用户意图动态调整过滤策略

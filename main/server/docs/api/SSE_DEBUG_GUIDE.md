@@ -377,7 +377,7 @@ data: <json_data>
 
 ## 相关文档
 
-- `APIFOX_IMPORT.md` - Apifox 导入指南
-- `SSE_STREAMING_DESIGN.md` - SSE 流式通信设计文档
-- `AGENT_WORKFLOW_DESIGN.md` - Agent 工作流设计文档
+- [Apifox 导入指南](./APIFOX_IMPORT.md) - Apifox 导入指南
+- [SSE 流式设计](../workflow/SSE_STREAMING_DESIGN.md) - SSE 流式通信设计文档
+- [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md) - Agent 工作流设计文档
 

@@ -101,16 +101,12 @@ export class AgentService {
             break;
           }
 
-          // Executor 节点执行时，推送进度提示
-          if (nodeName === 'executor' && currentState.intent) {
+          // RAG 节点执行后，推送 enhancedPrompt 详细信息
+          if (nodeName === 'rag' && update.enhancedPrompt) {
             yield {
-              type: 'thought_log',
+              type: 'enhanced_prompt',
               timestamp: Date.now(),
-              data: {
-                node: 'executor',
-                message: `开始执行任务：${this.getActionLabel(currentState.intent.action)}...`,
-                progress: 50,
-              },
+              data: update.enhancedPrompt,
             };
           }
 

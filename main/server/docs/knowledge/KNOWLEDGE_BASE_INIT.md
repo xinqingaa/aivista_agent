@@ -325,6 +325,6 @@ EMBEDDING_DIMENSION=1536
 ## 9. 相关文档
 
 - **产品规格:** `../../docs/product_spec.md` - 定义了需要 5 条风格数据
-- **RAG Node 设计:** `AGENT_WORKFLOW_DESIGN.md` - 说明了如何使用检索结果
-- **向量数据库配置:** `PROMPT_README.md` - 环境变量中的 `VECTOR_DB_PATH`
+- **RAG Node 设计:** [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md) - 说明了如何使用检索结果
+- **向量数据库配置:** [后端实施文档](../design/PROMPT_README.md) - 环境变量中的 `VECTOR_DB_PATH`
 

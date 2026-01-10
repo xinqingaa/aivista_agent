@@ -29,6 +29,13 @@ export class ExecutorNode {
     // 使用增强后的 Prompt（如果存在），否则使用原始 Prompt
     const prompt = state.enhancedPrompt?.final || state.intent.prompt || state.userInput.text;
 
+    // 先推送"开始执行任务"的思考日志
+    const startThoughtLog = {
+      node: 'executor',
+      message: `开始执行任务：${this.getActionLabel(action)}...`,
+      timestamp: Date.now(),
+    };
+
     // 模拟延迟（2-3 秒）
     const delay = 2000 + Math.random() * 1000;
     await new Promise((resolve) => setTimeout(resolve, delay));
@@ -80,6 +87,7 @@ export class ExecutorNode {
       generatedImageUrl: imageUrl,
       uiComponents,
       thoughtLogs: [
+        startThoughtLog, // 先推送"开始执行任务"
         {
           node: 'executor',
           message: `任务执行完成：${this.getActionLabel(action)}`,

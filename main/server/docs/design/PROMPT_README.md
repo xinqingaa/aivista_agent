@@ -299,8 +299,8 @@ SESSION_TIMEOUT_MINUTES=30
   - `critic.node.ts`: 质量审查
 
 **详细设计参考：** 
-- `AGENT_WORKFLOW_DESIGN.md` - Agent 工作流设计文档
-- `WORKFLOW_GUIDE.md` - 完整工作流程指南（包含流程图、节点详解、实际案例）
+- [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md) - Agent 工作流设计文档
+- [工作流指南](../workflow/WORKFLOW_GUIDE.md) - 完整工作流程指南（包含流程图、节点详解、实际案例）
 
 ### 3.2 Knowledge 模块 (`src/knowledge/`)
 
@@ -320,7 +320,7 @@ SESSION_TIMEOUT_MINUTES=30
 - **filters/**: 全局异常过滤器
 - **guards/**: 认证和授权守卫
 
-**详细设计参考：** `DATA_MODELS_DESIGN.md`, `ERROR_HANDLING_DESIGN.md`
+**详细设计参考：** [数据模型设计](./DATA_MODELS_DESIGN.md), [错误处理设计](./ERROR_HANDLING_DESIGN.md)
 
 ## 4. 开发优先级细化 (Implementation Priorities)
 
@@ -477,8 +477,8 @@ async *executeWorkflow(initialState: AgentState) {
 ### 5.2 LangGraph 状态图
 
 **详细设计参考：** 
-- `AGENT_WORKFLOW_DESIGN.md` - Agent 工作流设计文档
-- `WORKFLOW_GUIDE.md` - 完整工作流程指南（包含流程图、节点详解、实际案例）, `../../docs/agent_state_machine.md`
+- [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md) - Agent 工作流设计文档
+- [工作流指南](../workflow/WORKFLOW_GUIDE.md) - 完整工作流程指南（包含流程图、节点详解、实际案例）
 
 **核心流程：**
 ```
@@ -492,7 +492,7 @@ Planner → RAG → Executor → Critic → GenUI → END
 
 ### 5.3 SSE 流式传输
 
-**详细设计参考：** `SSE_STREAMING_DESIGN.md`
+**详细设计参考：** [SSE 流式设计](../workflow/SSE_STREAMING_DESIGN.md)
 
 **事件类型：**
 - `thought_log`: 思考日志（关键节点推送）
@@ -508,7 +508,7 @@ Planner → RAG → Executor → Critic → GenUI → END
 
 ### 5.4 错误处理
 
-**详细设计参考：** `ERROR_HANDLING_DESIGN.md`
+**详细设计参考：** [错误处理设计](./ERROR_HANDLING_DESIGN.md)
 
 **错误分类：**
 - API 调用错误（可重试）
@@ -546,11 +546,11 @@ Planner → RAG → Executor → Critic → GenUI → END
 - **产品规格:** `../../docs/product_spec.md`
 - **架构设计:** `../../docs/architecture.md`
 - **GenUI 协议:** `../../docs/gen_ui_protocol.md`
-- **Agent 工作流设计:** `AGENT_WORKFLOW_DESIGN.md`
-- **完整工作流程指南:** `WORKFLOW_GUIDE.md` - 包含流程图、节点详解、数据流转、SSE 事件流、实际案例和知识库内容展示
-- **SSE 流式设计:** `SSE_STREAMING_DESIGN.md`
-- **错误处理设计:** `ERROR_HANDLING_DESIGN.md`
-- **数据模型设计:** `DATA_MODELS_DESIGN.md`
-- **LLM 服务设计:** `LLM_SERVICE_DESIGN.md`
-- **知识库初始化:** `KNOWLEDGE_BASE_INIT.md`
+- **Agent 工作流设计:** [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md)
+- **完整工作流程指南:** [工作流指南](../workflow/WORKFLOW_GUIDE.md) - 包含流程图、节点详解、数据流转、SSE 事件流、实际案例和知识库内容展示
+- **SSE 流式设计:** [SSE 流式设计](../workflow/SSE_STREAMING_DESIGN.md)
+- **错误处理设计:** [错误处理设计](./ERROR_HANDLING_DESIGN.md)
+- **数据模型设计:** [数据模型设计](./DATA_MODELS_DESIGN.md)
+- **LLM 服务设计:** [LLM 服务设计](./LLM_SERVICE_DESIGN.md)
+- **知识库初始化:** [知识库初始化](../knowledge/KNOWLEDGE_BASE_INIT.md)
 - **状态机可视化:** `../../docs/agent_state_machine.md`

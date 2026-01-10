@@ -148,12 +148,14 @@ export class AgentController {
     
 **工作流步骤：**
 1. Planner Node: 识别用户意图（generate_image/inpainting/adjust_parameters）
-2. Executor Node: 执行任务（如生成图片）
-3. 流式推送思考日志、GenUI 组件和结果
+2. RAG Node: 检索相关风格，增强 Prompt
+3. Executor Node: 执行任务（如生成图片）
+4. 流式推送思考日志、增强 Prompt 信息、GenUI 组件和结果
 
 **响应事件类型：**
 - \`connection\`: 连接确认
 - \`thought_log\`: 思考日志（Agent 执行过程）
+- \`enhanced_prompt\`: 增强后的 Prompt 信息（包含检索到的风格和相似度）
 - \`gen_ui_component\`: GenUI 组件（前端渲染指令）
 - \`error\`: 错误信息
 - \`stream_end\`: 流结束
@@ -210,6 +212,12 @@ data: {"status":"connected","sessionId":"session_1234567890"}
 
 event: thought_log
 data: {"type":"thought_log","timestamp":1234567890,"data":{"node":"planner","message":"已识别意图：generate_image"}}
+
+event: thought_log
+data: {"type":"thought_log","timestamp":1234567891,"data":{"node":"rag","message":"检索到 3 条相关风格：Cyberpunk、Anime、Minimalist"}}
+
+event: enhanced_prompt
+data: {"type":"enhanced_prompt","timestamp":1234567891,"data":{"original":"生成一只赛博朋克风格的猫","retrieved":[{"style":"Cyberpunk","prompt":"neon lights, high tech...","similarity":0.48}],"final":"生成一只赛博朋克风格的猫, neon lights, high tech..."}}
 
 event: gen_ui_component
 data: {"type":"gen_ui_component","timestamp":1234567890,"data":{"widgetType":"ImageView","props":{"imageUrl":"https://picsum.photos/800/600","width":800,"height":600,"fit":"contain"}}}
