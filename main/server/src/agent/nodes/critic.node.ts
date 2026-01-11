@@ -56,6 +56,12 @@ export class CriticNode {
       // 2. 获取配置参数
       const passThreshold = this.configService.get<number>('CRITIC_PASS_THRESHOLD') ?? 0.7;
       const useLlm = this.configService.get<boolean>('CRITIC_USE_LLM') ?? false;
+      const maxRetryCount = this.configService.get<number>('MAX_RETRY_COUNT') ?? 3;
+      const currentRetryCount = state.metadata?.retryCount || 0;
+
+      this.logger.log(
+        `Critic Node: Quality check params - passThreshold: ${passThreshold}, useLlm: ${useLlm}, retryCount: ${currentRetryCount}/${maxRetryCount}`,
+      );
 
       // 3. 执行质量审查
       let qualityCheck: QualityCheck;
@@ -68,10 +74,23 @@ export class CriticNode {
         qualityCheck = this.performSimpleQualityCheck(state, passThreshold);
       }
 
+      // 确保passed是明确的布尔值
+      if (typeof qualityCheck.passed !== 'boolean') {
+        this.logger.warn(
+          'Critic Node: qualityCheck.passed is not boolean, defaulting to false',
+        );
+        qualityCheck.passed = false;
+      }
+
+      // 确保score是有效数字
+      if (typeof qualityCheck.score !== 'number' || isNaN(qualityCheck.score)) {
+        this.logger.warn(
+          'Critic Node: qualityCheck.score is invalid, defaulting to 0.5',
+        );
+        qualityCheck.score = 0.5;
+      }
+
       // 4. 如果未通过且需要重试，更新 retryCount
-      const maxRetryCount = this.configService.get<number>('MAX_RETRY_COUNT') ?? 3;
-      const currentRetryCount = state.metadata?.retryCount || 0;
-      
       // 如果需要重试（未通过且未达到最大重试次数），增加 retryCount
       const shouldRetry = !qualityCheck.passed && currentRetryCount < maxRetryCount;
       const newRetryCount = shouldRetry ? currentRetryCount + 1 : currentRetryCount;
@@ -86,7 +105,7 @@ export class CriticNode {
       };
 
       this.logger.log(
-        `Critic Node: Quality check completed - score: ${qualityCheck.score.toFixed(2)}, passed: ${qualityCheck.passed}, retryCount: ${newRetryCount}`,
+        `Critic Node: Quality check result - score: ${qualityCheck.score.toFixed(2)}, passed: ${qualityCheck.passed}, feedback: "${qualityCheck.feedback}"`,
       );
 
       return {
@@ -171,17 +190,42 @@ export class CriticNode {
       suggestions?: string[];
     }
 
-    const result = await this.llmService.chatWithJson<QualityCheckResult>(messages, {
-      temperature: 0.3,
-      jsonMode: true,
-    });
+    try {
+      const result = await this.llmService.chatWithJson<QualityCheckResult>(messages, {
+        temperature: 0.3,
+        jsonMode: true,
+      });
 
-    return {
-      passed: result.passed && result.score >= passThreshold,
-      score: Math.max(0, Math.min(1, result.score)), // 确保在 0-1 范围内
-      feedback: result.feedback || '质量审查完成',
-      suggestions: result.suggestions || [],
-    };
+      // 验证返回结果的格式
+      if (typeof result.score !== 'number' || isNaN(result.score)) {
+        this.logger.warn(
+          `Critic Node: LLM returned invalid score: ${result.score}, falling back to simple quality check`,
+        );
+        // 降级到简化逻辑
+        return this.performSimpleQualityCheck(state, passThreshold);
+      }
+
+      // 添加类型检查和默认值处理
+      const score = Math.max(0, Math.min(1, result.score)); // 确保在 0-1 范围内
+
+      const passed =
+        typeof result.passed === 'boolean'
+          ? result.passed && score >= passThreshold
+          : score >= passThreshold; // 如果没有passed字段，根据分数判断
+
+      return {
+        passed,
+        score,
+        feedback: result.feedback || '质量审查完成',
+        suggestions: result.suggestions || [],
+      };
+    } catch (error) {
+      this.logger.error(
+        `Critic Node: LLM quality check failed: ${error.message}, falling back to simple quality check`,
+      );
+      // 降级到简化逻辑
+      return this.performSimpleQualityCheck(state, passThreshold);
+    }
   }
 
   /**

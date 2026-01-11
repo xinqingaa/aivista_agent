@@ -1,33 +1,3 @@
----
-name: "Milestone 4: Critic Node 和循环机制实现"
-overview: 实现 Critic Node（质量审查节点）和循环重试机制，完成 Milestone 4 的所有功能。包括质量审查逻辑、重试机制、工作流图更新、状态管理优化等。
-todos:
-  - id: update-agent-state
-    content: 更新 AgentState 接口：添加 qualityCheck 和 metadata 字段
-    status: completed
-  - id: implement-critic-node
-    content: 实现 Critic Node：创建 critic.node.ts，实现质量审查逻辑
-    status: completed
-  - id: update-workflow-graph
-    content: 更新工作流图：添加 Critic 节点和条件边（executor → critic → genui/rag）
-    status: completed
-  - id: update-agent-service
-    content: 更新 AgentService：处理重试逻辑和 qualityCheck 事件推送
-    status: completed
-  - id: update-agent-module
-    content: 更新 AgentModule：导入 CriticNode 并注入到工作流图
-    status: completed
-  - id: add-configuration
-    content: 添加配置项：CRITIC_TIMEOUT、CRITIC_PASS_THRESHOLD、MAX_RETRY_COUNT
-    status: completed
-  - id: test-verification
-    content: 测试验证：正常流程、重试流程、最大重试次数、错误处理
-    status: completed
-  - id: update-documentation
-    content: 更新文档：工作流设计文档、工作流指南、开发路线图
-    status: completed
----
-
 # Milestone 4: Critic Node 和循环机制实现计划
 
 ## 一、目标

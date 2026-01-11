@@ -81,7 +81,6 @@ export class RagNode {
           state.intent.subject, // 主题（如"猫"）
         ].filter(Boolean);
         queryText = queryParts.join(' ');
-        this.logger.debug(`RAG Node: Using style-focused query: "${queryText}"`);
       } else {
         // 如果没有风格，使用 subject 和原始文本
         const queryParts = [
@@ -113,8 +112,6 @@ export class RagNode {
       const minSimilarity = this.configService.get<number>('RAG_MIN_SIMILARITY') ?? 0.4;
       const searchLimit = this.configService.get<number>('RAG_SEARCH_LIMIT') ?? 3;
 
-      this.logger.debug(`RAG Node: Query text: "${queryText}", minSimilarity: ${minSimilarity}, limit: ${searchLimit}`);
-
       // 3. 向量检索
       let results = await this.knowledgeService.search(queryText, {
         limit: searchLimit,
@@ -138,17 +135,11 @@ export class RagNode {
             if (b.style.toLowerCase() === styleEnglish.toLowerCase()) return 1;
             return b.similarity - a.similarity;
           });
-          this.logger.debug(
-            `RAG Node: Filtered results to prioritize matched style "${styleEnglish}", filtered count: ${results.length}`,
-          );
         }
       }
 
       // 5. 如果第一次检索失败且存在中文风格名称，尝试仅使用英文风格名称再次检索
       if (results.length === 0 && styleEnglish) {
-        this.logger.debug(
-          `RAG Node: First search failed, retrying with English style name only: "${styleEnglish}"`,
-        );
         results = await this.knowledgeService.search(styleEnglish, {
           limit: searchLimit,
           minSimilarity: minSimilarity * 0.8, // 降低阈值以便找到结果
@@ -172,6 +163,9 @@ export class RagNode {
 
         this.logger.log(
           `RAG Node: Retrieved ${results.length} styles: ${styleNames} (similarities: ${similarityScores})`,
+        );
+        this.logger.log(
+          `RAG Node: Enhanced prompt - Original: "${originalPrompt}" -> Final: "${finalPrompt}"`,
         );
 
         return {

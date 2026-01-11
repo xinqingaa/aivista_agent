@@ -126,9 +126,7 @@ export class KnowledgeService implements OnModuleInit {
    */
   private async openDatabase(): Promise<void> {
     try {
-      this.logger.debug(`Opening database at: ${this.dbPath}`);
       this.db = await lancedb.connect(this.dbPath);
-      this.logger.debug(`Database connected, opening table: ${this.tableName}`);
       this.table = await this.db.openTable(this.tableName);
       this.logger.log('Knowledge base database opened successfully');
     } catch (error) {
@@ -142,7 +140,6 @@ export class KnowledgeService implements OnModuleInit {
    */
   private async createDatabase(): Promise<void> {
     try {
-      this.logger.debug(`Creating database at: ${this.dbPath}`);
       this.db = await lancedb.connect(this.dbPath);
       this.logger.log('Knowledge base database connection established');
     } catch (error) {
@@ -167,7 +164,6 @@ export class KnowledgeService implements OnModuleInit {
         (style) => `${style.style} ${style.prompt} ${style.description || ''}`,
       );
       const embeddings = await this.embeddingService.embedBatch(texts);
-      this.logger.debug(`Generated ${embeddings.length} embeddings, dimension: ${embeddings[0]?.length || 0}`);
 
       // 准备数据
       const data = INITIAL_STYLES.map((style, index) => ({
@@ -180,7 +176,6 @@ export class KnowledgeService implements OnModuleInit {
         vector: embeddings[index],
       }));
 
-      this.logger.debug(`Creating table "${this.tableName}" with ${data.length} records...`);
       // 创建表并插入数据
       this.table = await this.db.createTable(this.tableName, data);
       this.logger.log(`Created table and inserted ${data.length} styles into knowledge base`);
@@ -210,14 +205,12 @@ export class KnowledgeService implements OnModuleInit {
         this.logger.warn('Knowledge base is empty! Please reinitialize by setting FORCE_INIT_KNOWLEDGE_BASE=true');
         return [];
       }
-      this.logger.debug(`Knowledge base contains ${dbCount} styles`);
 
       const limit = options.limit || 3;
       const minSimilarity = options.minSimilarity || 0.4;
 
       // 生成查询向量
       const queryVector = await this.embeddingService.embed(query);
-      this.logger.debug(`Search query: "${query}", vector dimension: ${queryVector.length}, first 3 values: [${queryVector.slice(0, 3).map(v => v.toFixed(4)).join(', ')}]`);
 
       // 执行向量搜索
       // @lancedb/lancedb API: search() 返回一个查询对象，可以链式调用 limit() 和 toArray()
@@ -228,36 +221,7 @@ export class KnowledgeService implements OnModuleInit {
         .limit(limit * 2); // 获取更多结果，因为后续会过滤
       const results = await limitedQuery.toArray();
 
-      this.logger.debug(`Raw search results count: ${results.length}`);
-
-      // 调试：打印第一个结果的结构
-      if (results.length > 0) {
-        const firstResult = results[0];
-        const resultKeys = Object.keys(firstResult);
-        this.logger.debug(`First result keys: ${resultKeys.join(', ')}`);
-        this.logger.debug(`First result sample (excluding vector): ${JSON.stringify(
-          Object.fromEntries(
-            Object.entries(firstResult).filter(([key]) => key !== 'vector')
-          ),
-          null,
-          2
-        ).substring(0, 500)}`);
-        
-        // 检查 vector 字段
-        const hasVector = 'vector' in firstResult;
-        const hasDistance = '_distance' in firstResult || 'distance' in firstResult;
-        this.logger.debug(`Result has vector field: ${hasVector}, has distance field: ${hasDistance}`);
-        
-        if (hasVector) {
-          const vectorLength = Array.isArray(firstResult.vector) ? firstResult.vector.length : 0;
-          this.logger.debug(`Vector field length: ${vectorLength}`);
-        }
-        
-        if (hasDistance) {
-          const distance = firstResult._distance || firstResult.distance;
-          this.logger.debug(`Distance value: ${distance}`);
-        }
-      } else {
+      if (results.length === 0) {
         this.logger.warn(`No results returned from LanceDB search for query: "${query}"`);
       }
 
@@ -276,23 +240,14 @@ export class KnowledgeService implements OnModuleInit {
               return null;
             }
             similarity = this.cosineSimilarity(queryVector, result.vector);
-            this.logger.debug(
-              `Calculated cosine similarity for style "${result.style}": ${similarity.toFixed(4)}`,
-            );
           } 
           // 使用距离字段转换为相似度（LanceDB 的标准方式）
-          // 注意：从日志看，vector 字段虽然存在但长度为 0，而 _distance 字段总是存在
-          // 所以我们直接使用距离字段
           else if (result._distance !== undefined || result.distance !== undefined) {
             const distance = result._distance || result.distance;
             // L2 距离转换为相似度
             // 使用归一化方法：similarity = 1 / (1 + distance / scale_factor)
-            // scale_factor 需要根据实际距离范围调整
             const scaleFactor = 10000; // 基于观察到的距离值范围（7000-17000）
             similarity = 1 / (1 + distance / scaleFactor);
-            this.logger.debug(
-              `Using distance field for similarity calculation: distance=${distance.toFixed(2)}, similarity=${similarity.toFixed(4)}`,
-            );
           } else {
             this.logger.warn(
               `Result missing both vector and distance fields: ${JSON.stringify(Object.keys(result))}`,
@@ -319,8 +274,9 @@ export class KnowledgeService implements OnModuleInit {
         .sort((a, b) => b.similarity - a.similarity) // 按相似度降序排序
         .slice(0, limit); // 限制返回数量
 
+      const similarities = filteredStyles.map((r) => r.similarity.toFixed(2)).join(', ');
       this.logger.log(
-        `Retrieved ${filteredStyles.length} styles for query: "${query}" (minSimilarity: ${minSimilarity}, raw results: ${results.length}, valid results: ${retrievedStyles.filter((item) => item !== null).length}, similarities: ${filteredStyles.map((r) => r.similarity.toFixed(2)).join(', ')})`,
+        `Retrieved ${filteredStyles.length} styles for query: "${query}" (similarities: ${similarities})`,
       );
       
       if (filteredStyles.length === 0 && results.length > 0) {
@@ -385,11 +341,9 @@ export class KnowledgeService implements OnModuleInit {
     }
 
     try {
-      this.logger.debug(`Adding new style: ${style.style} (id: ${style.id})`);
       // 生成向量嵌入
       const text = `${style.style} ${style.prompt} ${style.description || ''}`;
       const vector = await this.embeddingService.embed(text);
-      this.logger.debug(`Generated embedding for style "${style.style}", dimension: ${vector.length}`);
 
       // 插入数据
       // @lancedb/lancedb 使用 add() 方法添加数据
@@ -423,7 +377,6 @@ export class KnowledgeService implements OnModuleInit {
 
     try {
       const count = await this.table.countRows();
-      this.logger.debug(`Knowledge base contains ${count} styles`);
       return count;
     } catch (error) {
       this.logger.error(`Failed to count styles: ${error.message}`, error.stack);

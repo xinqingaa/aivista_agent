@@ -26,6 +26,7 @@ export class PlannerNode {
 
   async execute(state: AgentState): Promise<Partial<AgentState>> {
     this.logger.log('Planner Node: Starting intent analysis...');
+    this.logger.log(`Planner Node: User input - "${state.userInput.text}"`);
 
     // 如果有蒙版数据，强制设置为 inpainting
     if (state.userInput.maskData) {
@@ -70,9 +71,15 @@ export class PlannerNode {
         new HumanMessage(state.userInput.text),
       ];
 
+      this.logger.log(
+        `Planner Node: Sending to LLM - System prompt (${systemPrompt.length} chars), User message`,
+      );
+
       const intent = await this.llmService.chatWithJson<IntentResult>(messages);
 
-      this.logger.log(`Planner Node: Intent parsed - ${intent.action}, confidence: ${intent.confidence}`);
+      this.logger.log(
+        `Planner Node: Intent parsed - action: ${intent.action}, subject: ${intent.subject || 'N/A'}, style: ${intent.style || 'N/A'}, confidence: ${intent.confidence}`,
+      );
 
       return {
         intent,

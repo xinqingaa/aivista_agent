@@ -133,11 +133,13 @@ class EnvironmentVariables {
   @IsOptional()
   ALIYUN_IMAGE_SIZE?: string;
 
+  @IsString()
   @IsOptional()
-  ALIYUN_IMAGE_PROMPT_EXTEND?: boolean;
+  ALIYUN_IMAGE_PROMPT_EXTEND?: string;
 
+  @IsString()
   @IsOptional()
-  ALIYUN_IMAGE_WATERMARK?: boolean;
+  ALIYUN_IMAGE_WATERMARK?: string;
 }
 
 export function validateEnvironment(config: Record<string, unknown>) {

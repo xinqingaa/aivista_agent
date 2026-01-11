@@ -40,10 +40,30 @@ export class AliyunImageService implements IImageService {
       this.configService.get<string>('ALIYUN_IMAGE_MODEL') || 'qwen-image-plus';
     this.defaultSize =
       this.configService.get<string>('ALIYUN_IMAGE_SIZE') || '1024x1024';
-    this.defaultPromptExtend =
-      this.configService.get<boolean>('ALIYUN_IMAGE_PROMPT_EXTEND') ?? true;
-    this.defaultWatermark =
-      this.configService.get<boolean>('ALIYUN_IMAGE_WATERMARK') ?? false;
+    // 正确解析布尔值配置（强制从 ConfigService 读取字符串类型，避免类型转换问题）
+    // 注意：enableImplicitConversion 会将非空字符串 "false" 错误地转换为布尔值 true
+    // 因此强制指定类型为 string，然后手动解析
+    const promptExtendConfigStr = this.configService.get<string>('ALIYUN_IMAGE_PROMPT_EXTEND');
+    if (promptExtendConfigStr !== undefined && promptExtendConfigStr !== null) {
+      this.defaultPromptExtend =
+        promptExtendConfigStr.toLowerCase() === 'true' || promptExtendConfigStr === '1';
+    } else {
+      this.defaultPromptExtend = true; // 默认值
+    }
+    
+    const watermarkConfigStr = this.configService.get<string>('ALIYUN_IMAGE_WATERMARK');
+    if (watermarkConfigStr !== undefined && watermarkConfigStr !== null) {
+      this.defaultWatermark =
+        watermarkConfigStr.toLowerCase() === 'true' || watermarkConfigStr === '1';
+      this.logger.log(
+        `AliyunImageService: Watermark config - raw: "${watermarkConfigStr}", parsed: ${this.defaultWatermark}`,
+      );
+    } else {
+      this.defaultWatermark = false; // 默认值
+      this.logger.log(
+        'AliyunImageService: Watermark config not found, using default: false',
+      );
+    }
 
     if (!this.apiKey) {
       throw new Error('DASHSCOPE_API_KEY is required for AliyunImageService');
@@ -144,6 +164,10 @@ export class AliyunImageService implements IImageService {
       const promptExtend = options?.prompt_extend ?? defaultPromptExtend;
       const watermark = options?.watermark ?? this.defaultWatermark;
       const negativePrompt = options?.negative_prompt || '';
+
+      this.logger.log(
+        `AliyunImageService: Request to DashScope - model: ${model}, size: ${size}, prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}", prompt_extend: ${promptExtend}, watermark: ${watermark}`,
+      );
 
       // 构建请求体
       const requestBody = {

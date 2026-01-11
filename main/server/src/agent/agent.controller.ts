@@ -246,6 +246,11 @@ data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1
     description: '服务器内部错误',
   })
   async chat(@Body() request: ChatRequestDto, @Res() response: Response) {
+    // 记录请求参数
+    this.logger.log(
+      `AgentController: Received request - text: "${request.text.substring(0, 50)}${request.text.length > 50 ? '...' : ''}", preferredModel: ${request.preferredModel || 'not specified'}, hasMaskData: ${!!request.maskData}`,
+    );
+
     // 设置 SSE 响应头
     response.setHeader('Content-Type', 'text/event-stream');
     response.setHeader('Cache-Control', 'no-cache');

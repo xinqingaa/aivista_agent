@@ -50,11 +50,13 @@ export class ExecutorNode {
       switch (action) {
         case 'generate_image':
           // 文生图：模型选择优先级：userInput.preferredModel > 环境变量 > 默认值
+          const preferredModel = state.userInput.preferredModel || 'not specified';
+          const envModel = this.configService.get<
+            'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo'
+          >('ALIYUN_IMAGE_MODEL') || 'not set';
           const model =
             state.userInput.preferredModel ||
-            (this.configService.get<
-              'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo'
-            >('ALIYUN_IMAGE_MODEL') as
+            (envModel as
               | 'qwen-image'
               | 'qwen-image-max'
               | 'qwen-image-plus'
@@ -63,6 +65,13 @@ export class ExecutorNode {
 
           const size =
             this.configService.get<string>('ALIYUN_IMAGE_SIZE') || '1024x1024';
+
+          this.logger.log(
+            `Executor Node: Model selection - preferredModel: ${preferredModel}, env config: ${envModel}, selected: ${model}`,
+          );
+          this.logger.log(
+            `Executor Node: Image generation params - model: ${model}, size: ${size}, prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`,
+          );
 
           // 根据配置的模型选择对应的方法
           switch (model) {
@@ -115,11 +124,13 @@ export class ExecutorNode {
 
         case 'adjust_parameters':
           // 参数调整（重新生成）：模型选择优先级：userInput.preferredModel > 环境变量 > 默认值
+          const adjustPreferredModel = state.userInput.preferredModel || 'not specified';
+          const adjustEnvModel = this.configService.get<
+            'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo'
+          >('ALIYUN_IMAGE_MODEL') || 'not set';
           const adjustModel =
             state.userInput.preferredModel ||
-            (this.configService.get<
-              'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo'
-            >('ALIYUN_IMAGE_MODEL') as
+            (adjustEnvModel as
               | 'qwen-image'
               | 'qwen-image-max'
               | 'qwen-image-plus'
@@ -128,6 +139,13 @@ export class ExecutorNode {
 
           const adjustSize =
             this.configService.get<string>('ALIYUN_IMAGE_SIZE') || '1024x1024';
+
+          this.logger.log(
+            `Executor Node: Model selection - preferredModel: ${adjustPreferredModel}, env config: ${adjustEnvModel}, selected: ${adjustModel}`,
+          );
+          this.logger.log(
+            `Executor Node: Image generation params - model: ${adjustModel}, size: ${adjustSize}, prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`,
+          );
 
           // 根据配置的模型选择对应的方法
           switch (adjustModel) {
