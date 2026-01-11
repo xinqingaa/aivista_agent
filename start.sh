@@ -3,8 +3,9 @@
 # AiVista 项目启动脚本
 # 用法：
 #   ./start.sh backend   - 仅启动后端
-#   ./start.sh frontend  - 仅启动前端（预留）
-#   ./start.sh all       - 同时启动前后端
+#   ./start.sh frontend  - 仅启动前端（Flutter）
+#   ./start.sh web       - 仅启动 Web（Next.js）
+#   ./start.sh all       - 同时启动所有服务（backend + frontend + web）
 
 set -e
 
@@ -98,6 +99,49 @@ start_frontend() {
     cd ../..
 }
 
+# 启动 Web 服务
+start_web() {
+    echo -e "${BLUE}启动 Web 服务...${NC}"
+    cd main/web
+    
+    # 检查 package.json
+    if [ ! -f "package.json" ]; then
+        echo -e "${RED}错误: 未找到 package.json${NC}"
+        cd ../..
+        return 1
+    fi
+    
+    # 检查并安装依赖
+    if [ ! -d "node_modules" ]; then
+        echo -e "${YELLOW}检测到未安装依赖，正在安装...${NC}"
+        # 优先使用 pnpm
+        if command -v pnpm &> /dev/null; then
+            pnpm install
+        else
+            npm install
+        fi
+    fi
+    
+    # 检查 .env.local（可选）
+    if [ ! -f ".env.local" ]; then
+        echo -e "${YELLOW}提示: 未找到 .env.local 文件，请确保已配置环境变量${NC}"
+    fi
+    
+    # 启动服务
+    if command -v pnpm &> /dev/null; then
+        pnpm dev &
+    else
+        npm run dev &
+    fi
+    WEB_PID=$!
+    PIDS+=($WEB_PID)
+    
+    echo -e "${GREEN}Web 服务已启动 (PID: $WEB_PID)${NC}"
+    echo -e "${GREEN}Web 地址: http://localhost:3001${NC}"
+    
+    cd ../..
+}
+
 # 主逻辑
 case "${1:-all}" in
     backend)
@@ -110,18 +154,26 @@ case "${1:-all}" in
         echo -e "\n${GREEN}按 Ctrl+C 停止服务${NC}"
         wait
         ;;
+    web)
+        start_web
+        echo -e "\n${GREEN}按 Ctrl+C 停止服务${NC}"
+        wait
+        ;;
     all)
         start_backend
         sleep 2  # 等待后端启动
         start_frontend
+        sleep 2  # 等待前端启动
+        start_web
         echo -e "\n${GREEN}所有服务已启动，按 Ctrl+C 停止所有服务${NC}"
         wait
         ;;
     *)
-        echo -e "${RED}用法: $0 {backend|frontend|all}${NC}"
+        echo -e "${RED}用法: $0 {backend|frontend|web|all}${NC}"
         echo -e "${YELLOW}  backend  - 仅启动后端服务${NC}"
-        echo -e "${YELLOW}  frontend - 仅启动前端服务${NC}"
-        echo -e "${YELLOW}  all      - 同时启动前后端服务（默认）${NC}"
+        echo -e "${YELLOW}  frontend - 仅启动前端服务（Flutter）${NC}"
+        echo -e "${YELLOW}  web      - 仅启动 Web 服务（Next.js）${NC}"
+        echo -e "${YELLOW}  all      - 同时启动所有服务（默认）${NC}"
         exit 1
         ;;
 esac
