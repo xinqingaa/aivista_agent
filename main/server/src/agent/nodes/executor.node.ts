@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AgentState } from '../interfaces/agent-state.interface';
 import { GenUIComponent } from '../../common/types/genui-component.interface';
+import { IImageService } from '../../image/interfaces/image-service.interface';
 
 /**
  * Executor 节点 - 任务执行节点
@@ -9,13 +11,18 @@ import { GenUIComponent } from '../../common/types/genui-component.interface';
  * 
  * 调用顺序:
  * 1. 接收意图结果（AgentState.intent）
- * 2. 根据意图执行相应任务（当前为模拟图片生成，使用 picsum.photos）
+ * 2. 根据意图执行相应任务（使用图片生成服务，支持 Mock 和真实服务）
  * 3. 生成 GenUI 组件（ImageView, AgentMessage, ActionPanel）
  * 4. 返回执行结果（包含生成的图片 URL 和 UI 组件）
  */
 @Injectable()
 export class ExecutorNode {
   private readonly logger = new Logger(ExecutorNode.name);
+
+  constructor(
+    @Inject('IMAGE_SERVICE') private readonly imageService: IImageService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async execute(state: AgentState): Promise<Partial<AgentState>> {
     this.logger.log('Executor Node: Starting task execution...');
@@ -36,15 +43,140 @@ export class ExecutorNode {
       timestamp: Date.now(),
     };
 
-    // 模拟延迟（2-3 秒）
-    const delay = 2000 + Math.random() * 1000;
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    // 根据 action 类型调用相应的图片服务
+    let imageUrl: string;
 
-    // 生成随机种子（基于 Prompt 的哈希值，确保相同 Prompt 返回相同图片）
-    const seed = this.hashString(prompt);
-    const imageUrl = `https://picsum.photos/seed/${seed}/800/600`;
+    try {
+      switch (action) {
+        case 'generate_image':
+          // 文生图：模型选择优先级：userInput.preferredModel > 环境变量 > 默认值
+          const model =
+            state.userInput.preferredModel ||
+            (this.configService.get<
+              'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo'
+            >('ALIYUN_IMAGE_MODEL') as
+              | 'qwen-image'
+              | 'qwen-image-max'
+              | 'qwen-image-plus'
+              | 'z-image-turbo') ||
+            'qwen-image-plus';
 
-    this.logger.log(`Executor Node: Generated image URL - ${imageUrl}`);
+          const size =
+            this.configService.get<string>('ALIYUN_IMAGE_SIZE') || '1024x1024';
+
+          // 根据配置的模型选择对应的方法
+          switch (model) {
+            case 'qwen-image':
+              imageUrl = await this.imageService.generateImageQwenImage(
+                prompt,
+                { size, n: 1 },
+              );
+              break;
+            case 'qwen-image-max':
+              imageUrl = await this.imageService.generateImageQwenImageMax(
+                prompt,
+                { size, n: 1 },
+              );
+              break;
+            case 'qwen-image-plus':
+              imageUrl = await this.imageService.generateImageQwenImagePlus(
+                prompt,
+                { size, n: 1 },
+              );
+              break;
+            case 'z-image-turbo':
+              imageUrl = await this.imageService.generateImageZImageTurbo(
+                prompt,
+                { size, n: 1 },
+              );
+              break;
+            default:
+              // 降级到统一入口方法
+              imageUrl = await this.imageService.generateImage(prompt, {
+                model,
+                size,
+                n: 1,
+              });
+          }
+          break;
+
+        case 'inpainting':
+          // 局部重绘
+          if (!state.userInput.maskData) {
+            throw new Error('Inpainting requires maskData');
+          }
+          imageUrl = await this.imageService.editImage(prompt, {
+            model: 'qwen-image-edit-plus',
+            imageUrl: state.userInput.maskData.imageUrl,
+            maskBase64: state.userInput.maskData.base64,
+            size: this.configService.get<string>('ALIYUN_IMAGE_SIZE') || '1024x1024',
+          });
+          break;
+
+        case 'adjust_parameters':
+          // 参数调整（重新生成）：模型选择优先级：userInput.preferredModel > 环境变量 > 默认值
+          const adjustModel =
+            state.userInput.preferredModel ||
+            (this.configService.get<
+              'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo'
+            >('ALIYUN_IMAGE_MODEL') as
+              | 'qwen-image'
+              | 'qwen-image-max'
+              | 'qwen-image-plus'
+              | 'z-image-turbo') ||
+            'qwen-image-plus';
+
+          const adjustSize =
+            this.configService.get<string>('ALIYUN_IMAGE_SIZE') || '1024x1024';
+
+          // 根据配置的模型选择对应的方法
+          switch (adjustModel) {
+            case 'qwen-image':
+              imageUrl = await this.imageService.generateImageQwenImage(
+                prompt,
+                { size: adjustSize, n: 1 },
+              );
+              break;
+            case 'qwen-image-max':
+              imageUrl = await this.imageService.generateImageQwenImageMax(
+                prompt,
+                { size: adjustSize, n: 1 },
+              );
+              break;
+            case 'qwen-image-plus':
+              imageUrl = await this.imageService.generateImageQwenImagePlus(
+                prompt,
+                { size: adjustSize, n: 1 },
+              );
+              break;
+            case 'z-image-turbo':
+              imageUrl = await this.imageService.generateImageZImageTurbo(
+                prompt,
+                { size: adjustSize, n: 1 },
+              );
+              break;
+            default:
+              // 降级到统一入口方法
+              imageUrl = await this.imageService.generateImage(prompt, {
+                model: adjustModel,
+                size: adjustSize,
+                n: 1,
+              });
+          }
+          break;
+
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+
+      this.logger.log(`Executor Node: Generated image URL - ${imageUrl}`);
+    } catch (error) {
+      this.logger.error(
+        `Executor Node: Failed to generate image - ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
 
     // 生成 GenUI 组件
     const uiComponents: GenUIComponent[] = [
@@ -95,16 +227,6 @@ export class ExecutorNode {
         },
       ],
     };
-  }
-
-  private hashString(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString();
   }
 
   private getActionLabel(action: string): string {

@@ -658,10 +658,34 @@ EMBEDDING_MODEL=text-embedding-ada-002
 - `CRITIC_USE_LLM`: 是否使用 LLM 进行真实审查（默认 false，使用简化版本）
 - `CRITIC_TIMEOUT`: Critic 节点超时时间（默认 8 秒）
 
-## 11. 未来计划（Milestone 5）
+## 11. Milestone 5 完成状态
+
+✅ **Milestone 5 已完成**：
+- ✅ **图片生成服务**: 集成阿里云 DashScope 图片生成服务
+- ✅ **服务接口**: 创建统一的 IImageService 接口
+- ✅ **Mock/Real 切换**: 支持配置开关在 Mock 和真实服务间切换
+- ✅ **三个模型支持**: qwen-image-max、qwen-image-plus、qwen-image-edit-plus
+
+**配置项**:
+- `USE_REAL_IMAGE_SERVICE`: 是否使用真实图片生成服务（默认 false，使用 Mock）
+- `ALIYUN_IMAGE_MODEL`: 阿里云图片生成模型（默认 qwen-image-plus）
+- `ALIYUN_IMAGE_SIZE`: 图片生成尺寸（默认 1024x1024）
+
+**成本说明**:
+- qwen-image-max: 0.5元/张（100张免费额度，90天内有效）
+- qwen-image-plus: 0.2元/张
+- qwen-image-edit-plus: 用于局部重绘（价格需确认）
+
+**使用方式**:
+- 默认使用 Mock 服务（避免测试时产生费用）
+- 设置 `USE_REAL_IMAGE_SERVICE=true` 启用真实服务
+- 测试一次真实调用后切回 Mock，等待前端完成后再切换
+
+**详细文档**: 查看 [图片服务设计文档](../design/IMAGE_SERVICE_DESIGN.md)
+
+## 12. 未来计划（Milestone 6）
 
 - **更多风格**: 支持动态添加和管理风格数据
-- **真实生图**: 集成真实的 AI 图像生成服务（Midjourney、Stable Diffusion 等）
 - **工作流元数据**: 推送节点执行时间、总耗时等性能指标
 - **智能过滤**: 进一步优化 RAG 检索结果，根据用户意图动态调整过滤策略
 - **真实质量审查**: 将 Critic Node 升级为使用 LLM 进行真实审查（已支持，通过 `CRITIC_USE_LLM=true` 启用）

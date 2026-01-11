@@ -28,6 +28,7 @@ export interface AgentState {
       base64: string;
       imageUrl: string;
     };
+    preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo';
   };
 
   // Agent 处理结果

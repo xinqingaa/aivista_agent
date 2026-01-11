@@ -110,6 +110,34 @@ class EnvironmentVariables {
 
   @IsOptional()
   CRITIC_USE_LLM?: boolean;
+
+  // 图片生成服务配置
+  @IsOptional()
+  USE_REAL_IMAGE_SERVICE?: boolean;
+
+  // DashScope API 配置
+  @IsString()
+  @IsOptional()
+  DASHSCOPE_BASE_URL?: string;
+
+  @IsString()
+  @IsOptional()
+  DASHSCOPE_IMAGE_ENDPOINT?: string;
+
+  // 图片生成模型和参数
+  @IsString()
+  @IsOptional()
+  ALIYUN_IMAGE_MODEL?: string;
+
+  @IsString()
+  @IsOptional()
+  ALIYUN_IMAGE_SIZE?: string;
+
+  @IsOptional()
+  ALIYUN_IMAGE_PROMPT_EXTEND?: boolean;
+
+  @IsOptional()
+  ALIYUN_IMAGE_WATERMARK?: boolean;
 }
 
 export function validateEnvironment(config: Record<string, unknown>) {

@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Res, Logger } from '@nestjs/common';
 import { Response } from 'express';
-import { IsString, IsOptional, ValidateNested, IsObject } from 'class-validator';
+import { IsString, IsOptional, ValidateNested, IsObject, IsEnum } from 'class-validator';
 import { 
   ApiTags, 
   ApiOperation, 
@@ -58,6 +58,15 @@ class ChatRequestDto {
   @IsOptional()
   @IsString()
   sessionId?: string;
+
+  @ApiPropertyOptional({
+    description: '首选图片生成模型（可选），如果不指定则使用环境变量配置的默认模型',
+    enum: ['qwen-image', 'qwen-image-max', 'qwen-image-plus', 'z-image-turbo'],
+    example: 'qwen-image-plus',
+  })
+  @IsOptional()
+  @IsEnum(['qwen-image', 'qwen-image-max', 'qwen-image-plus', 'z-image-turbo'])
+  preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo';
 }
 
 /**
@@ -250,6 +259,7 @@ data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1
       userInput: {
         text: request.text,
         maskData: request.maskData,
+        preferredModel: request.preferredModel,
       },
       uiComponents: [],
       thoughtLogs: [],

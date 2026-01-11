@@ -20,6 +20,14 @@
 - ✅ 配置项添加（CRITIC_TIMEOUT、CRITIC_PASS_THRESHOLD、MAX_RETRY_COUNT）
 - ✅ 支持简化版本和 LLM 真实审查两种模式
 
+✅ **Milestone 5 已完成**：
+- ✅ 图片生成服务接口（IImageService）
+- ✅ AliyunImageService（使用 DashScope SDK）
+- ✅ MockImageService（保持现有 Mock 逻辑）
+- ✅ 支持三个模型：qwen-image-max、qwen-image-plus、qwen-image-edit-plus
+- ✅ 配置开关（USE_REAL_IMAGE_SERVICE）
+- ✅ Executor Node 集成图片服务
+
 ## 下一步开发任务
 
 ### 1. 完善错误处理和重试机制 🟡 中优先级
@@ -76,6 +84,25 @@
 - [工作流设计](../workflow/AGENT_WORKFLOW_DESIGN.md) - Agent 工作流设计（Critic 节点部分）
 - [工作流指南](../workflow/WORKFLOW_GUIDE.md) - 完整工作流说明
 
+### ✅ Milestone 5: 集成阿里云真实图片生成服务
+
+**完成日期**: 2026-01-10
+
+**任务清单**：
+- [x] 安装 DashScope SDK 依赖包
+- [x] 创建图片生成服务接口（IImageService）
+- [x] 实现 AliyunImageService（使用 DashScope SDK）
+- [x] 实现 MockImageService（保持现有 Mock 逻辑）
+- [x] 创建 ImageModule（服务模块）
+- [x] 更新 Executor Node（集成图片服务）
+- [x] 更新 AgentModule（导入 ImageModule）
+- [x] 添加配置项（USE_REAL_IMAGE_SERVICE、ALIYUN_IMAGE_MODEL 等）
+- [x] 更新文档
+
+**相关文档**：
+- [图片服务设计](../design/IMAGE_SERVICE_DESIGN.md) - 图片生成服务设计文档
+- [工作流指南](../workflow/WORKFLOW_GUIDE.md) - 完整工作流说明
+
 ## 待完成任务
 
 **目标**：实现前后端联调，完成完整的用户体验。
@@ -117,7 +144,7 @@
 
 以下问题需要在后续版本中解决：
 
-- [ ] 图片生成目前使用 mock（picsum.photos），需要集成真实的图片生成 API（Midjourney、Stable Diffusion 等）
+- [x] 图片生成服务已集成（支持阿里云 DashScope，可通过配置开关切换 Mock/Real）
 - [ ] 会话管理需要持久化（当前为内存存储）
 - [ ] 需要添加认证和授权机制
 - [ ] 需要添加速率限制（Rate Limiting）
