@@ -664,16 +664,24 @@ EMBEDDING_MODEL=text-embedding-ada-002
 - ✅ **图片生成服务**: 集成阿里云 DashScope 图片生成服务
 - ✅ **服务接口**: 创建统一的 IImageService 接口
 - ✅ **Mock/Real 切换**: 支持配置开关在 Mock 和真实服务间切换
-- ✅ **三个模型支持**: qwen-image-max、qwen-image-plus、qwen-image-edit-plus
+- ✅ **四个文生图模型支持**: qwen-image、qwen-image-max、qwen-image-plus、z-image-turbo
+- ✅ **局部重绘模型支持**: qwen-image-edit-plus
 
 **配置项**:
 - `USE_REAL_IMAGE_SERVICE`: 是否使用真实图片生成服务（默认 false，使用 Mock）
 - `ALIYUN_IMAGE_MODEL`: 阿里云图片生成模型（默认 qwen-image-plus）
+  - 可选值: `qwen-image` | `qwen-image-max` | `qwen-image-plus` | `z-image-turbo`
 - `ALIYUN_IMAGE_SIZE`: 图片生成尺寸（默认 1024x1024）
+- `ALIYUN_IMAGE_WATERMARK`: 是否添加水印（默认 false）
+- `ALIYUN_IMAGE_PROMPT_EXTEND`: 是否扩展提示词（默认 true，z-image-turbo 使用 false）
+- `DASHSCOPE_BASE_URL`: DashScope API 基础 URL（默认 https://dashscope.aliyuncs.com/api/v1）
+- `DASHSCOPE_IMAGE_ENDPOINT`: 图片生成 API 端点（默认 /services/aigc/multimodal-generation/generation）
 
 **成本说明**:
+- qwen-image: 待确认
 - qwen-image-max: 0.5元/张（100张免费额度，90天内有效）
-- qwen-image-plus: 0.2元/张
+- qwen-image-plus: 0.2元/张（默认模型，性价比高）
+- z-image-turbo: 待确认（快速模型）
 - qwen-image-edit-plus: 用于局部重绘（价格需确认）
 
 **使用方式**:

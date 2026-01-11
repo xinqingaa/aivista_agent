@@ -30,6 +30,7 @@ interface AgentState {
       imageUrl: string; // 原图 URL
       coordinates?: Array<{ x: number; y: number }>; // 蒙版路径点
     };
+    preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo'; // 首选图片生成模型
   };
   
   // Planner 节点输出

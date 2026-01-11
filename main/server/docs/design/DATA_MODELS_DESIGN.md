@@ -69,6 +69,7 @@ interface UserInput {
   text: string;
   maskData?: MaskData;
   context?: UserContext;
+  preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo';
 }
 
 /**
@@ -185,7 +186,7 @@ interface WorkflowMetadata {
  */
 interface GenUIComponent {
   id?: string;                 // 组件唯一 ID（用于更新）
-  widgetType: 'SmartCanvas' | 'AgentMessage' | 'ActionPanel';
+  widgetType: 'SmartCanvas' | 'ImageView' | 'AgentMessage' | 'ActionPanel';
   props: ComponentProps;
   updateMode?: 'append' | 'replace' | 'update'; // 更新模式
   targetId?: string;           // 如果 updateMode 为 'update'，指定要更新的组件 ID
@@ -197,6 +198,7 @@ interface GenUIComponent {
  */
 type ComponentProps = 
   | SmartCanvasProps 
+  | ImageViewProps
   | AgentMessageProps 
   | ActionPanelProps;
 ```
@@ -221,7 +223,21 @@ interface SmartCanvasProps {
 }
 ```
 
-### 3.3 AgentMessage 组件
+### 3.3 ImageView 组件
+
+```typescript
+/**
+ * 图片展示组件属性（纯图片展示，不包含画布功能）
+ */
+interface ImageViewProps {
+  imageUrl: string;            // 图片 URL
+  width?: number;              // 显示宽度（可选）
+  height?: number;             // 显示高度（可选）
+  fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scaleDown';  // 图片适应方式
+}
+```
+
+### 3.4 AgentMessage 组件
 
 ```typescript
 /**
@@ -239,7 +255,7 @@ interface AgentMessageProps {
 }
 ```
 
-### 3.4 ActionPanel 组件
+### 3.5 ActionPanel 组件
 
 ```typescript
 /**
@@ -306,6 +322,7 @@ interface ChatRequest {
   text: string;               // 用户文本输入
   maskData?: MaskData;        // 可选的蒙版数据
   sessionId?: string;         // 会话 ID（用于多轮对话）
+  preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo';  // 首选图片生成模型
   context?: UserContext;     // 上下文信息
 }
 ```
@@ -507,6 +524,10 @@ export class ChatRequestDto {
   sessionId?: string;
 
   @IsOptional()
+  @IsEnum(['qwen-image', 'qwen-image-max', 'qwen-image-plus', 'z-image-turbo'])
+  preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo';
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => UserContextDto)
   context?: UserContextDto;
@@ -702,6 +723,16 @@ export function isSmartCanvas(component: GenUIComponent): component is GenUIComp
 }
 
 /**
+ * 类型守卫：检查是否为 ImageView 组件
+ */
+export function isImageView(component: GenUIComponent): component is GenUIComponent & {
+  widgetType: 'ImageView';
+  props: ImageViewProps;
+} {
+  return component.widgetType === 'ImageView';
+}
+
+/**
  * 类型守卫：检查是否为 AgentMessage 组件
  */
 export function isAgentMessage(component: GenUIComponent): component is GenUIComponent & {
@@ -728,6 +759,9 @@ export function isActionPanel(component: GenUIComponent): component is GenUIComp
 function processComponent(component: GenUIComponent) {
   if (isSmartCanvas(component)) {
     // TypeScript 现在知道 component.props 是 SmartCanvasProps
+    console.log(component.props.imageUrl);
+  } else if (isImageView(component)) {
+    // TypeScript 现在知道 component.props 是 ImageViewProps
     console.log(component.props.imageUrl);
   } else if (isAgentMessage(component)) {
     // TypeScript 现在知道 component.props 是 AgentMessageProps
@@ -803,7 +837,7 @@ export type { MaskData, Point, UserContext, WorkflowMetadata };
 
 // GenUI 组件
 export type { GenUIComponent, ComponentProps };
-export type { SmartCanvasProps, AgentMessageProps, ActionPanelProps, ActionItem, SelectOption };
+export type { SmartCanvasProps, ImageViewProps, AgentMessageProps, ActionPanelProps, ActionItem, SelectOption };
 
 // 请求/响应
 export type { ChatRequest };

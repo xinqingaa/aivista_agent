@@ -6,7 +6,7 @@
 
 **核心目标：**
 - 提供统一的图片生成服务接口（IImageService）
-- 支持阿里云 DashScope 图片生成服务（qwen-image-max、qwen-image-plus、qwen-image-edit-plus）
+- 支持阿里云 DashScope 图片生成服务（qwen-image、qwen-image-max、qwen-image-plus、z-image-turbo、qwen-image-edit-plus）
 - 支持 Mock 服务（用于测试和开发）
 - 通过配置开关在 Mock 和真实服务间切换
 
@@ -33,7 +33,7 @@ IImageService (接口)
     ↓
 ┌─────────────────┬─────────────────┐
 │ AliyunImageService │ MockImageService │
-│ (DashScope SDK)    │ (Picsum Photos)  │
+│ (HTTP Request)      │ (Picsum Photos)  │
 └─────────────────┴─────────────────┘
 ```
 
@@ -54,32 +54,65 @@ src/image/
 ### 3.1 AliyunImageService
 
 **技术栈：**
-- 使用 `@alicloud/dashscope` SDK
-- 调用 DashScope ImagesGeneration API
+- 使用 HTTP 请求调用 DashScope API
+- 通过 `fetch` API 发送 POST 请求
+- 支持多地域配置（中国内地、新加坡等）
 
 **支持的模型：**
+- `qwen-image`: 基础模型
 - `qwen-image-max`: 0.5元/张（100张免费额度，90天内有效）
-- `qwen-image-plus`: 0.2元/张
+- `qwen-image-plus`: 0.2元/张（默认模型）
+- `z-image-turbo`: 快速模型（prompt_extend 默认为 false）
 - `qwen-image-edit-plus`: 用于局部重绘（价格需确认）
 
-**API 调用示例：**
+**模型特性：**
+- `qwen-image`、`qwen-image-max`、`qwen-image-plus`: 默认 `prompt_extend=true`
+- `z-image-turbo`: 默认 `prompt_extend=false`（性能优化）
+
+**API 调用方式：**
+
+使用 HTTP POST 请求调用 DashScope 多模态生成 API：
+
 ```typescript
-const DashScope = await import('@alicloud/dashscope');
-const client = new DashScope.default({
-  apiKey: 'your-api-key',
+const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'qwen-image-plus',
+    input: {
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              text: 'a cat in cyberpunk style',
+            },
+          ],
+        },
+      ],
+    },
+    parameters: {
+      size: '1024*1024',
+      n: 1,
+      result_format: 'message',
+      stream: false,
+      watermark: false,
+      prompt_extend: true,
+    },
+  }),
 });
 
-const response = await client.call({
-  model: 'qwen-image-plus',
-  input: {
-    prompt: 'a cat in cyberpunk style',
-  },
-  parameters: {
-    size: '1024*1024',
-    n: 1,
-  },
-});
+const data = await response.json();
+const imageUrl = data.output.results[0].url;
 ```
+
+**API Endpoint 配置：**
+- 基础 URL：`DASHSCOPE_BASE_URL`（默认：`https://dashscope.aliyuncs.com/api/v1`）
+- 图片生成端点：`DASHSCOPE_IMAGE_ENDPOINT`（默认：`/services/aigc/multimodal-generation/generation`）
+- 完整端点：`${DASHSCOPE_BASE_URL}${DASHSCOPE_IMAGE_ENDPOINT}`
 
 ### 3.2 MockImageService
 
@@ -97,14 +130,28 @@ const response = await client.call({
 # 是否使用真实图片生成服务（默认 false，使用 Mock）
 USE_REAL_IMAGE_SERVICE=false
 
+# DashScope API 配置
+# 基础 URL（支持不同地域）
+# 中国内地: https://dashscope.aliyuncs.com/api/v1
+# 新加坡: https://dashscope-intl.aliyuncs.com/api/v1
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
+
+# 图片生成 API endpoint
+DASHSCOPE_IMAGE_ENDPOINT=/services/aigc/multimodal-generation/generation
+
+# DashScope API Key（与 LLM 服务共用）
+DASHSCOPE_API_KEY=your-api-key
+
 # 阿里云图片生成模型（默认 qwen-image-plus）
+# 可选值: qwen-image | qwen-image-max | qwen-image-plus | z-image-turbo
 ALIYUN_IMAGE_MODEL=qwen-image-plus
 
 # 图片生成尺寸（默认 1024x1024）
 ALIYUN_IMAGE_SIZE=1024x1024
 
-# DashScope API Key（与 LLM 服务共用）
-DASHSCOPE_API_KEY=your-api-key
+# 图片生成参数
+ALIYUN_IMAGE_PROMPT_EXTEND=true  # z-image-turbo 使用 false
+ALIYUN_IMAGE_WATERMARK=false      # 是否添加水印（默认 false）
 ```
 
 ### 4.2 配置优先级
@@ -116,11 +163,13 @@ DASHSCOPE_API_KEY=your-api-key
 
 ### 5.1 模型定价（中国内地）
 
-| 模型 | 价格 | 免费额度 |
-|------|------|---------|
-| qwen-image-max | 0.5元/张 | 100张（90天内有效） |
-| qwen-image-plus | 0.2元/张 | 无 |
-| qwen-image-edit-plus | 待确认 | 待确认 |
+| 模型 | 价格 | 免费额度 | 说明 |
+|------|------|---------|------|
+| qwen-image | 待确认 | 待确认 | 基础模型 |
+| qwen-image-max | 0.5元/张 | 100张（90天内有效） | 高质量模型 |
+| qwen-image-plus | 0.2元/张 | 无 | 默认模型，性价比高 |
+| z-image-turbo | 待确认 | 待确认 | 快速模型，prompt_extend=false |
+| qwen-image-edit-plus | 待确认 | 待确认 | 局部重绘专用 |
 
 ### 5.2 成本控制策略
 
@@ -140,9 +189,17 @@ export class ExecutorNode {
   ) {}
 
   async execute(state: AgentState) {
-    // 文生图
+    // 文生图（统一入口，自动选择模型）
     const imageUrl = await this.imageService.generateImage(prompt, {
-      model: 'qwen-image-plus',
+      model: 'qwen-image-plus',  // 可选：qwen-image | qwen-image-max | qwen-image-plus | z-image-turbo
+      size: '1024x1024',
+      n: 1,
+      prompt_extend: true,        // z-image-turbo 默认为 false
+      watermark: false,
+    });
+
+    // 或使用特定模型方法
+    const imageUrl2 = await this.imageService.generateImageQwenImagePlus(prompt, {
       size: '1024x1024',
     });
 
@@ -151,6 +208,7 @@ export class ExecutorNode {
       model: 'qwen-image-edit-plus',
       imageUrl: originalImageUrl,
       maskBase64: maskData,
+      size: '1024x1024',
     });
   }
 }
@@ -167,7 +225,12 @@ USE_REAL_IMAGE_SERVICE=false
 ```bash
 USE_REAL_IMAGE_SERVICE=true
 DASHSCOPE_API_KEY=your-api-key
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
+DASHSCOPE_IMAGE_ENDPOINT=/services/aigc/multimodal-generation/generation
 ALIYUN_IMAGE_MODEL=qwen-image-plus
+ALIYUN_IMAGE_SIZE=1024x1024
+ALIYUN_IMAGE_PROMPT_EXTEND=true
+ALIYUN_IMAGE_WATERMARK=false
 ```
 
 ## 7. 错误处理

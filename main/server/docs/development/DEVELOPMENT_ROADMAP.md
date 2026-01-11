@@ -22,11 +22,14 @@
 
 ✅ **Milestone 5 已完成**：
 - ✅ 图片生成服务接口（IImageService）
-- ✅ AliyunImageService（使用 DashScope SDK）
+- ✅ AliyunImageService（使用 HTTP 请求调用 DashScope API）
 - ✅ MockImageService（保持现有 Mock 逻辑）
-- ✅ 支持三个模型：qwen-image-max、qwen-image-plus、qwen-image-edit-plus
+- ✅ 支持四个文生图模型：qwen-image、qwen-image-max、qwen-image-plus、z-image-turbo
+- ✅ 支持局部重绘模型：qwen-image-edit-plus
 - ✅ 配置开关（USE_REAL_IMAGE_SERVICE）
+- ✅ 环境变量配置（模型、尺寸、水印、prompt_extend 等）
 - ✅ Executor Node 集成图片服务
+- ✅ 支持用户指定 preferredModel 参数
 
 ## 下一步开发任务
 
