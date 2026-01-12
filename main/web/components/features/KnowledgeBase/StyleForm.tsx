@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
 interface StyleFormProps {
@@ -66,13 +65,7 @@ export function StyleForm({ onSuccess, onCancel }: StyleFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>添加新风格</CardTitle>
-        <CardDescription>向知识库添加新的风格数据</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="style">
               风格名称 <span className="text-destructive">*</span>
@@ -136,7 +129,5 @@ export function StyleForm({ onSuccess, onCancel }: StyleFormProps) {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
   );
 }

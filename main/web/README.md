@@ -97,6 +97,14 @@ main/web/
 
 开发环境中，Next.js 会自动代理 `/api/*` 请求到 `http://localhost:3000/api/*`，解决 CORS 问题。
 
+## 开发规范
+
+项目遵循统一的开发规范，请参考：
+
+- [文件命名规范](./docs/development/NAMING_CONVENTIONS.md) - 文件命名约定
+- [开发规范](./docs/development/CODING_STANDARDS.md) - 代码风格和最佳实践
+- [最佳实践](./docs/development/BEST_PRACTICES.md) - 开发最佳实践
+
 ## 参考文档
 
 详细的技术文档请参考 `docs/` 目录：
