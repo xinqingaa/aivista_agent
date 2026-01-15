@@ -8,6 +8,18 @@ import { INITIAL_STYLES, StyleData } from './data/initial-styles';
 import { UpdateStyleDto } from './dto/update-style.dto';
 
 /**
+ * 系统内置样式ID列表
+ * 这些样式不可删除，只能修改部分字段
+ */
+export const SYSTEM_STYLE_IDS = [
+  'style_001', // Cyberpunk
+  'style_002', // Watercolor
+  'style_003', // Minimalist
+  'style_004', // Oil Painting
+  'style_005', // Anime
+] as const;
+
+/**
  * 检索到的风格数据
  */
 export interface RetrievedStyle {
@@ -61,8 +73,9 @@ export class KnowledgeService implements OnModuleInit {
   async onModuleInit() {
     await this.initialize();
     
-    // 执行数据库迁移
-    await this.migrateDatabase();
+    // 数据库迁移已废弃
+    // 新初始化的数据库schema已正确，无需迁移
+    // await this.migrateDatabase();
   }
 
   /**
@@ -178,7 +191,7 @@ export class KnowledgeService implements OnModuleInit {
         tags: style.tags || [],
         metadata: JSON.stringify(style.metadata || {}),
         vector: embeddings[index],
-        issystem: style.isSystem || false, // 使用数据库的字段名
+        isSystem: style.isSystem || false,
         createdAt: style.createdAt || new Date(),
         updatedAt: style.updatedAt || new Date(),
       }));
@@ -318,6 +331,26 @@ export class KnowledgeService implements OnModuleInit {
   }
 
   /**
+   * 将数据库记录转换为StyleData对象
+   * 处理JSON序列化的字段
+   */
+  private mapDbRecordToStyleData(record: any): StyleData {
+    return {
+      id: record.id,
+      style: record.style,
+      prompt: record.prompt,
+      description: record.description || '',
+      tags: record.tags || [],
+      metadata: typeof record.metadata === 'string' 
+        ? JSON.parse(record.metadata) 
+        : record.metadata,
+      isSystem: record.isSystem || false,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
+  /**
    * 计算余弦相似度
    */
   private cosineSimilarity(vecA: number[], vecB: number[]): number {
@@ -363,7 +396,7 @@ export class KnowledgeService implements OnModuleInit {
           tags: style.tags || [],
           metadata: JSON.stringify(style.metadata || {}),
           vector,
-          issystem: style.isSystem || false, // 使用数据库的字段名
+          isSystem: style.isSystem || false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -438,8 +471,10 @@ export class KnowledgeService implements OnModuleInit {
 
     try {
       // 获取现有数据
-      const existingStyles = await this.table.search()
+      const existingStyles = await this.table
+        .query()
         .where(`id = '${id}'`)
+        .limit(1)
         .toArray();
       
       if (existingStyles.length === 0) {
@@ -447,7 +482,7 @@ export class KnowledgeService implements OnModuleInit {
       }
 
       const existing = existingStyles[0];
-      const isSystem = existing.issystem || existing.isSystem || false;
+      const isSystem = existing.isSystem || false;
 
       // 系统内置样式保护检查
       if (isSystem) {
@@ -498,20 +533,20 @@ export class KnowledgeService implements OnModuleInit {
    * @param id 风格ID
    */
   private async isSystemStyle(id: string): Promise<boolean> {
-    const systemIds = ['style_001', 'style_002', 'style_003', 'style_004', 'style_005'];
-    
     // 首先检查是否在系统ID列表中
-    if (systemIds.includes(id)) {
+    if (SYSTEM_STYLE_IDS.includes(id as any)) {
       return true;
     }
     
     // 然后检查数据库中的 isSystem 标记
     try {
-      const styles = await this.table.search()
+      const styles = await this.table
+        .query()
         .where(`id = '${id}'`)
+        .limit(1)
         .toArray();
       
-      return styles.length > 0 && (styles[0].issystem === true || styles[0].isSystem === true);
+      return styles.length > 0 && styles[0].isSystem === true;
     } catch (error) {
       this.logger.warn(`Failed to check system status for style ${id}: ${error.message}`);
       return false;
@@ -542,14 +577,14 @@ export class KnowledgeService implements OnModuleInit {
       }
 
       // 识别系统内置样式
-      const systemIds = ['style_001', 'style_002', 'style_003', 'style_004', 'style_005'];
+      const systemIds = SYSTEM_STYLE_IDS;
       
       // 批量更新
       const updates = allStyles.map(style => {
-        const isSystemValue = systemIds.includes(style.id);
+        const isSystemValue = systemIds.includes(style.id as any);
         return {
           ...style,
-          issystem: isSystemValue, // 使用数据库的字段名
+          isSystem: isSystemValue,
           createdAt: style.createdAt || new Date('2024-01-01'),
           updatedAt: new Date(),
         };
@@ -575,29 +610,46 @@ export class KnowledgeService implements OnModuleInit {
     }
     
     try {
-      // LanceDB需要向量参数进行搜索，所以我们创建一个零向量并设置大limit来获取所有数据
-      const dimension = this.embeddingService.getDimension();
-      const zeroVector = new Array(dimension).fill(0);
-      
+      // 使用query()方法查询所有记录（不需要向量参数）
       const results = await this.table
-        .search(zeroVector)
-        .limit(10000) // 设置一个很大的limit以获取所有数据
+        .query()
+        .limit(10000)
         .toArray();
       
-      return results.map(result => ({
-        id: result.id,
-        style: result.style,
-        prompt: result.prompt,
-        description: result.description,
-        tags: result.tags || [],
-        metadata: typeof result.metadata === 'string' ? JSON.parse(result.metadata) : result.metadata,
-        isSystem: result.issystem || result.isSystem || false,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt,
-      }));
+      this.logger.log(`Retrieved ${results.length} styles from database`);
+      
+      return results.map(result => this.mapDbRecordToStyleData(result));
     } catch (error) {
-      this.logger.error('Failed to get all styles', error);
+      this.logger.error(`Failed to get all styles: ${error.message}`, error.stack);
       return [];
+    }
+  }
+
+  /**
+   * 根据ID获取单个风格
+   */
+  async getStyleById(id: string): Promise<StyleData | null> {
+    if (!this.table) {
+      this.logger.warn('Table not initialized');
+      return null;
+    }
+    
+    try {
+      const results = await this.table
+        .query()
+        .where(`id = '${id}'`)
+        .limit(1)
+        .toArray();
+      
+      if (results.length === 0) {
+        this.logger.warn(`Style with id ${id} not found`);
+        return null;
+      }
+      
+      return this.mapDbRecordToStyleData(results[0]);
+    } catch (error) {
+      this.logger.error(`Failed to get style ${id}: ${error.message}`, error.stack);
+      return null;
     }
   }
 

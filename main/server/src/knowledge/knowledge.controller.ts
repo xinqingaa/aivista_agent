@@ -13,6 +13,7 @@ import {
   HttpStatus,
   UsePipes,
   ValidationPipe,
+  NotFoundException,
   UseInterceptors
 } from '@nestjs/common';
 import { IsString, IsOptional, IsArray, IsObject } from 'class-validator';
@@ -202,11 +203,12 @@ export class KnowledgeController {
   @ApiResponse({ status: 404, description: '风格不存在' })
   async getStyleById(@Param('id') id: string): Promise<StyleResponseDto> {
     this.logger.log(`Getting style by id: ${id}`);
-    const { INITIAL_STYLES } = await import('./data/initial-styles');
-    const style = INITIAL_STYLES.find((s) => s.id === id);
+    const style = await this.knowledgeService.getStyleById(id);
+    
     if (!style) {
-      throw new Error(`Style with id ${id} not found`);
+      throw new NotFoundException(`Style with id ${id} not found`);
     }
+    
     return {
       id: style.id,
       style: style.style,
