@@ -50,3 +50,20 @@ export interface CreateStyleResponse {
   tags?: string[];
   metadata?: Record<string, any>;
 }
+
+export interface UpdateStyleRequest {
+  style?: string;
+  prompt?: string;
+  description?: string;
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface BatchDeleteRequest {
+  ids: string[];
+}
+
+export interface BatchDeleteResponse {
+  deleted: number;
+  failed: string[];
+}

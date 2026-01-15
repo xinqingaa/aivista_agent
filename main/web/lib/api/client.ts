@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     STYLE_BY_ID: (id: string) => `/api/knowledge/styles/${id}`,
     SEARCH: '/api/knowledge/search',
     STATS: '/api/knowledge/stats',
+    BATCH_DELETE: '/api/knowledge/styles/batch-delete',
   },
 } as const;
 
@@ -45,6 +46,11 @@ export async function fetchAPI<T>(endpoint: string, options?: RequestOptions): P
       message: response.statusText,
     }));
     throw new APIError(error.message || 'API请求失败', response.status, error);
+  }
+
+  // 处理 204 No Content 响应
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json();

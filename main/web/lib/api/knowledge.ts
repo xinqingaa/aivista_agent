@@ -6,6 +6,9 @@ import type {
   KnowledgeStats,
   CreateStyleRequest,
   CreateStyleResponse,
+  UpdateStyleRequest,
+  BatchDeleteRequest,
+  BatchDeleteResponse,
 } from '@/lib/types/knowledge';
 
 export async function getStyles(): Promise<StyleData[]> {
@@ -34,5 +37,25 @@ export async function createStyle(data: CreateStyleRequest): Promise<CreateStyle
   return fetchAPI<CreateStyleResponse>(API_ENDPOINTS.KNOWLEDGE.STYLES, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateStyle(id: string, data: UpdateStyleRequest): Promise<void> {
+  return fetchAPI<void>(API_ENDPOINTS.KNOWLEDGE.STYLE_BY_ID(id), {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteStyle(id: string): Promise<void> {
+  return fetchAPI<void>(API_ENDPOINTS.KNOWLEDGE.STYLE_BY_ID(id), {
+    method: 'DELETE',
+  });
+}
+
+export async function deleteStyles(ids: string[]): Promise<BatchDeleteResponse> {
+  return fetchAPI<BatchDeleteResponse>(API_ENDPOINTS.KNOWLEDGE.BATCH_DELETE, {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
   });
 }

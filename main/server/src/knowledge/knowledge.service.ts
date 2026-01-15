@@ -1,10 +1,11 @@
-import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as lancedb from '@lancedb/lancedb';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { IEmbeddingService } from './interfaces/embedding-service.interface';
 import { INITIAL_STYLES, StyleData } from './data/initial-styles';
+import { UpdateStyleDto } from './dto/update-style.dto';
 
 /**
  * 检索到的风格数据
@@ -59,6 +60,9 @@ export class KnowledgeService implements OnModuleInit {
    */
   async onModuleInit() {
     await this.initialize();
+    
+    // 执行数据库迁移
+    await this.migrateDatabase();
   }
 
   /**
@@ -174,6 +178,9 @@ export class KnowledgeService implements OnModuleInit {
         tags: style.tags || [],
         metadata: JSON.stringify(style.metadata || {}),
         vector: embeddings[index],
+        issystem: style.isSystem || false, // 使用数据库的字段名
+        createdAt: style.createdAt || new Date(),
+        updatedAt: style.updatedAt || new Date(),
       }));
 
       // 创建表并插入数据
@@ -356,6 +363,9 @@ export class KnowledgeService implements OnModuleInit {
           tags: style.tags || [],
           metadata: JSON.stringify(style.metadata || {}),
           vector,
+          issystem: style.isSystem || false, // 使用数据库的字段名
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       ]);
 
@@ -363,6 +373,231 @@ export class KnowledgeService implements OnModuleInit {
     } catch (error) {
       this.logger.error(`Failed to add style "${style.style}": ${error.message}`, error.stack);
       throw error;
+    }
+  }
+
+  /**
+   * 删除单个风格
+   * @param id 风格ID
+   * @throws ForbiddenException 如果是系统内置风格
+   */
+  async deleteStyle(id: string): Promise<void> {
+    if (!this.table) {
+      throw new Error('Knowledge base not initialized');
+    }
+
+    try {
+      // 检查是否为系统内置
+      if (await this.isSystemStyle(id)) {
+        throw new ForbiddenException('Cannot delete system built-in style');
+      }
+      
+      // 从数据库删除
+      await this.table.delete(`id = '${id}'`);
+      this.logger.log(`Deleted style: ${id}`);
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      this.logger.error(`Failed to delete style "${id}": ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量删除风格
+   * @param ids 风格ID数组
+   */
+  async deleteStyles(ids: string[]): Promise<{ deleted: number; failed: string[] }> {
+    const deleted: string[] = [];
+    const failed: string[] = [];
+
+    for (const id of ids) {
+      try {
+        await this.deleteStyle(id);
+        deleted.push(id);
+      } catch (error) {
+        failed.push(id);
+        this.logger.warn(`Failed to delete style ${id}: ${error.message}`);
+      }
+    }
+
+    return { deleted: deleted.length, failed };
+  }
+
+  /**
+   * 更新单个风格
+   * @param id 风格ID
+   * @param updateData 更新数据
+   * @throws ForbiddenException 如果是系统内置风格且尝试修改核心字段
+   */
+  async updateStyle(id: string, updateData: UpdateStyleDto): Promise<StyleData> {
+    if (!this.table) {
+      throw new Error('Knowledge base not initialized');
+    }
+
+    try {
+      // 获取现有数据
+      const existingStyles = await this.table.search()
+        .where(`id = '${id}'`)
+        .toArray();
+      
+      if (existingStyles.length === 0) {
+        throw new NotFoundException(`Style with id ${id} not found`);
+      }
+
+      const existing = existingStyles[0];
+      const isSystem = existing.issystem || existing.isSystem || false;
+
+      // 系统内置样式保护检查
+      if (isSystem) {
+        // 只允许更新 description、tags、metadata 字段
+        const allowedFields = ['description', 'tags', 'metadata'];
+        const restrictedFields = Object.keys(updateData).filter(
+          key => !allowedFields.includes(key)
+        );
+        
+        if (restrictedFields.length > 0) {
+          throw new ForbiddenException(
+            `Cannot modify system style fields: ${restrictedFields.join(', ')}`
+          );
+        }
+      }
+
+      // 检查 prompt 是否变化，如果变化需要重新计算向量
+      let newVector = existing.vector;
+      if (updateData.prompt && updateData.prompt !== existing.prompt) {
+        const text = `${updateData.style || existing.style} ${updateData.prompt} ${updateData.description || existing.description || ''}`;
+        newVector = await this.embeddingService.embed(text);
+      }
+
+      // 执行更新
+      const updatedData = {
+        ...existing,
+        ...updateData,
+        vector: newVector,
+        updatedAt: new Date(),
+      };
+
+      // LanceDB 更新操作
+      await this.table.update([updatedData]);
+      this.logger.log(`Updated style: ${id}`);
+      
+      return updatedData;
+    } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to update style "${id}": ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查是否为系统内置风格
+   * @param id 风格ID
+   */
+  private async isSystemStyle(id: string): Promise<boolean> {
+    const systemIds = ['style_001', 'style_002', 'style_003', 'style_004', 'style_005'];
+    
+    // 首先检查是否在系统ID列表中
+    if (systemIds.includes(id)) {
+      return true;
+    }
+    
+    // 然后检查数据库中的 isSystem 标记
+    try {
+      const styles = await this.table.search()
+        .where(`id = '${id}'`)
+        .toArray();
+      
+      return styles.length > 0 && (styles[0].issystem === true || styles[0].isSystem === true);
+    } catch (error) {
+      this.logger.warn(`Failed to check system status for style ${id}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 数据库迁移：为现有数据添加系统标记
+   */
+  private async migrateDatabase(): Promise<void> {
+    if (!this.table) {
+      this.logger.warn('Table not initialized, skipping migration');
+      return;
+    }
+
+    try {
+      // 获取所有现有数据 - 使用零向量和大limit
+      const dimension = this.embeddingService.getDimension();
+      const zeroVector = new Array(dimension).fill(0);
+      const allStyles = await this.table
+        .search(zeroVector)
+        .limit(10000)
+        .toArray();
+      
+      if (!allStyles || allStyles.length === 0) {
+        this.logger.log('No existing data to migrate');
+        return;
+      }
+
+      // 识别系统内置样式
+      const systemIds = ['style_001', 'style_002', 'style_003', 'style_004', 'style_005'];
+      
+      // 批量更新
+      const updates = allStyles.map(style => {
+        const isSystemValue = systemIds.includes(style.id);
+        return {
+          ...style,
+          issystem: isSystemValue, // 使用数据库的字段名
+          createdAt: style.createdAt || new Date('2024-01-01'),
+          updatedAt: new Date(),
+        };
+      });
+
+      if (updates.length > 0) {
+        await this.table.update(updates);
+        this.logger.log(`Database migration completed: ${updates.length} styles updated`);
+      }
+    } catch (error) {
+      this.logger.error('Database migration failed', error);
+      // 不抛出错误，避免阻止服务启动
+    }
+  }
+
+  /**
+   * 获取所有风格
+   */
+  async getAllStyles(): Promise<StyleData[]> {
+    if (!this.table) {
+      this.logger.warn('Table not initialized');
+      return [];
+    }
+    
+    try {
+      // LanceDB需要向量参数进行搜索，所以我们创建一个零向量并设置大limit来获取所有数据
+      const dimension = this.embeddingService.getDimension();
+      const zeroVector = new Array(dimension).fill(0);
+      
+      const results = await this.table
+        .search(zeroVector)
+        .limit(10000) // 设置一个很大的limit以获取所有数据
+        .toArray();
+      
+      return results.map(result => ({
+        id: result.id,
+        style: result.style,
+        prompt: result.prompt,
+        description: result.description,
+        tags: result.tags || [],
+        metadata: typeof result.metadata === 'string' ? JSON.parse(result.metadata) : result.metadata,
+        isSystem: result.issystem || result.isSystem || false,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      }));
+    } catch (error) {
+      this.logger.error('Failed to get all styles', error);
+      return [];
     }
   }
 

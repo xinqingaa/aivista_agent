@@ -1,4 +1,21 @@
-import { Controller, Get, Post, Param, Query, Body, Logger } from '@nestjs/common';
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Patch, 
+  Delete, 
+  Param, 
+  Query, 
+  Body, 
+  Logger,
+  HttpCode,
+  HttpStatus,
+  UsePipes,
+  ValidationPipe,
+  UseInterceptors
+} from '@nestjs/common';
+import { IsString, IsOptional, IsArray, IsObject } from 'class-validator';
 import {
   ApiTags,
   ApiOperation,
@@ -10,6 +27,8 @@ import {
 } from '@nestjs/swagger';
 import { KnowledgeService } from './knowledge.service';
 import { StyleData } from './data/initial-styles';
+import { UpdateStyleDto } from './dto/update-style.dto';
+import { DeleteStylesDto } from './dto/delete-styles.dto';
 
 /**
  * 风格数据响应 DTO
@@ -82,22 +101,43 @@ class StatsResponseDto {
  */
 class AddStyleRequestDto {
   @ApiProperty({ description: '风格 ID', example: 'style_006' })
+  @IsString()
   id: string;
 
   @ApiProperty({ description: '风格名称', example: 'Impressionist' })
+  @IsString()
   style: string;
 
   @ApiProperty({ description: '风格提示词', example: 'impressionist painting, soft brushstrokes...' })
+  @IsString()
   prompt: string;
 
   @ApiProperty({ description: '风格描述', required: false })
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @ApiProperty({ description: '标签列表', required: false })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   tags?: string[];
 
   @ApiProperty({ description: '元数据', required: false })
+  @IsOptional()
+  @IsObject()
   metadata?: Record<string, any>;
+}
+
+/**
+ * 批量删除响应 DTO
+ */
+class BatchDeleteResponseDto {
+  @ApiProperty({ description: '成功删除的数量', example: 2 })
+  deleted: number;
+
+  @ApiProperty({ description: '删除失败的ID列表', example: ['style_001', 'style_002'] })
+  failed: string[];
 }
 
 /**
@@ -132,11 +172,8 @@ export class KnowledgeController {
   })
   async getAllStyles(): Promise<StyleResponseDto[]> {
     this.logger.log('Getting all styles');
-    // 注意：当前 KnowledgeService 没有 getAllStyles 方法
-    // 这里返回初始数据，实际应该从数据库读取
-    // 为了演示，我们返回 INITIAL_STYLES
-    const { INITIAL_STYLES } = await import('./data/initial-styles');
-    return INITIAL_STYLES.map((style) => ({
+    const styles = await this.knowledgeService.getAllStyles();
+    return styles.map((style) => ({
       id: style.id,
       style: style.style,
       prompt: style.prompt,
@@ -279,6 +316,7 @@ export class KnowledgeController {
    * POST /api/knowledge/styles
    */
   @Post('styles')
+  @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: '添加新风格',
     description: '向知识库添加新的风格数据（需要生成向量嵌入）',
@@ -296,5 +334,83 @@ export class KnowledgeController {
       message: 'Style added successfully',
       id: styleData.id,
     };
+  }
+
+  /**
+   * 完全更新风格
+   * 
+   * PUT /api/knowledge/styles/:id
+   */
+  @Put('styles/:id')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '完全更新风格' })
+  @ApiParam({ name: 'id', description: '风格ID' })
+  @ApiBody({ type: UpdateStyleDto })
+  @ApiResponse({ status: 204, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '风格不存在' })
+  @ApiResponse({ status: 403, description: '不能修改系统内置风格' })
+  async updateStyle(
+    @Param('id') id: string, 
+    @Body() updateDto: UpdateStyleDto
+  ): Promise<void> {
+    this.logger.log(`Updating style: ${id}`);
+    await this.knowledgeService.updateStyle(id, updateDto);
+  }
+
+  /**
+   * 部分更新风格
+   * 
+   * PATCH /api/knowledge/styles/:id
+   */
+  @Patch('styles/:id')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '部分更新风格' })
+  @ApiParam({ name: 'id', description: '风格ID' })
+  @ApiBody({ type: UpdateStyleDto })
+  @ApiResponse({ status: 204, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '风格不存在' })
+  @ApiResponse({ status: 403, description: '不能修改系统内置风格' })
+  async patchStyle(
+    @Param('id') id: string, 
+    @Body() updateDto: UpdateStyleDto
+  ): Promise<void> {
+    this.logger.log(`Patching style: ${id}`);
+    await this.knowledgeService.updateStyle(id, updateDto);
+  }
+
+  /**
+   * 删除单个风格
+   * 
+   * DELETE /api/knowledge/styles/:id
+   */
+  @Delete('styles/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '删除单个风格' })
+  @ApiParam({ name: 'id', description: '风格ID' })
+  @ApiResponse({ status: 204, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '风格不存在' })
+  @ApiResponse({ status: 403, description: '不能删除系统内置风格' })
+  async deleteStyle(@Param('id') id: string): Promise<void> {
+    this.logger.log(`Deleting style: ${id}`);
+    await this.knowledgeService.deleteStyle(id);
+  }
+
+  /**
+   * 批量删除风格
+   * 
+   * POST /api/knowledge/styles/batch-delete
+   */
+  @Post('styles/batch-delete')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '批量删除风格' })
+  @ApiBody({ type: DeleteStylesDto })
+  @ApiResponse({ status: 200, description: '批量删除结果', type: BatchDeleteResponseDto })
+  async deleteStyles(@Body() deleteDto: DeleteStylesDto): Promise<BatchDeleteResponseDto> {
+    this.logger.log(`Batch deleting ${deleteDto.ids.length} styles`);
+    const result = await this.knowledgeService.deleteStyles(deleteDto.ids);
+    return result;
   }
 }
