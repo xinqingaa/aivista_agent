@@ -533,14 +533,40 @@ export class KnowledgeService implements OnModuleInit {
         updatedAt: new Date(),
       };
 
-      // LanceDB 更新操作
-      // 由于当前版本的 LanceDB Node.js SDK 对 update API 的支持可能存在转换问题
-      // 我们采用先删除后添加的方式来实现更新
-      await this.table.delete(`id = '${id}'`);
-      await this.table.add([updatedRecord]);
-      this.logger.log(`Updated style: ${id}`);
-      
-      return this.mapDbRecordToStyleData(updatedRecord);
+      // 优化：尝试使用 LanceDB 原生 update API
+      try {
+        await this.table.update(`id = '${id}'`, updatedRecord);
+        this.logger.log(`Updated style using native update API: ${id}`);
+        return this.mapDbRecordToStyleData(updatedRecord);
+      } catch (updateError) {
+        this.logger.warn(`Native update API failed, falling back to delete+add: ${updateError.message}`);
+        
+        // 降级方案：先删除后添加，但增加备份和回滚机制
+        // 备份当前数据
+        const backup = { ...existing };
+        
+        try {
+          // 执行删除
+          await this.table.delete(`id = '${id}'`);
+          
+          // 执行添加
+          await this.table.add([updatedRecord]);
+          
+          this.logger.log(`Updated style using delete+add fallback: ${id}`);
+          return this.mapDbRecordToStyleData(updatedRecord);
+        } catch (deleteAddError) {
+          // 回滚：恢复备份数据
+          this.logger.error(`Update failed, attempting rollback: ${deleteAddError.message}`);
+          try {
+            await this.table.add([backup]);
+            this.logger.log(`Successfully rolled back style: ${id}`);
+          } catch (rollbackError) {
+            this.logger.error(`Rollback failed for style ${id}: ${rollbackError.message}`);
+            // 回滚也失败了，记录到日志，让管理员手动处理
+          }
+          throw deleteAddError;
+        }
+      }
     } catch (error) {
       if (error instanceof ForbiddenException || error instanceof NotFoundException) {
         throw error;

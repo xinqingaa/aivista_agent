@@ -235,6 +235,125 @@ describe('KnowledgeService - CRUD Operations', () => {
         ])
       );
     });
+
+    it('should fallback to delete+add when native update fails', async () => {
+      const updateData: UpdateStyleDto = {
+        description: 'Updated description',
+      };
+
+      // Mock existing style retrieval
+      const mockQueryChain = {
+        where: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            toArray: jest.fn().mockResolvedValue([existingStyle]),
+          }),
+        }),
+      };
+      mockTable.query.mockReturnValue(mockQueryChain);
+
+      // Mock native update to fail
+      mockTable.update.mockRejectedValue(new Error('Update API error'));
+      
+      // Mock delete and add for fallback
+      mockTable.delete.mockResolvedValue(undefined);
+      mockTable.add.mockResolvedValue(undefined);
+
+      const result = await service.updateStyle('custom_001', updateData);
+      
+      expect(mockTable.update).toHaveBeenCalled();
+      expect(mockTable.delete).toHaveBeenCalledWith(`id = 'custom_001'`);
+      expect(mockTable.add).toHaveBeenCalled();
+      expect(result.description).toBe(updateData.description);
+    });
+
+    it('should rollback when delete+add fallback fails', async () => {
+      const updateData: UpdateStyleDto = {
+        description: 'Updated description',
+      };
+
+      // Mock existing style retrieval
+      const mockQueryChain = {
+        where: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            toArray: jest.fn().mockResolvedValue([existingStyle]),
+          }),
+        }),
+      };
+      mockTable.query.mockReturnValue(mockQueryChain);
+
+      // Mock native update to fail
+      mockTable.update.mockRejectedValue(new Error('Update API error'));
+      
+      // Mock delete to succeed but add to fail
+      mockTable.delete.mockResolvedValue(undefined);
+      mockTable.add.mockRejectedValueOnce(new Error('Add failed'));
+      
+      // Mock rollback add to succeed
+      mockTable.add.mockResolvedValueOnce(undefined);
+
+      await expect(service.updateStyle('custom_001', updateData))
+        .rejects.toThrow('Add failed');
+      
+      expect(mockTable.delete).toHaveBeenCalled();
+      // Should have called add twice: once failed, once for rollback
+      expect(mockTable.add).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle rollback failure gracefully', async () => {
+      const updateData: UpdateStyleDto = {
+        description: 'Updated description',
+      };
+
+      // Mock existing style retrieval
+      const mockQueryChain = {
+        where: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            toArray: jest.fn().mockResolvedValue([existingStyle]),
+          }),
+        }),
+      };
+      mockTable.query.mockReturnValue(mockQueryChain);
+
+      // Mock native update to fail
+      mockTable.update.mockRejectedValue(new Error('Update API error'));
+      
+      // Mock all operations to fail
+      mockTable.delete.mockResolvedValue(undefined);
+      mockTable.add.mockRejectedValue(new Error('All operations failed'));
+
+      await expect(service.updateStyle('custom_001', updateData))
+        .rejects.toThrow('All operations failed');
+      
+      // Should have attempted rollback even though it fails
+      expect(mockTable.add).toHaveBeenCalledTimes(2);
+    });
+
+    it('should use native update API successfully', async () => {
+      const updateData: UpdateStyleDto = {
+        style: 'Updated Style Name',
+      };
+
+      // Mock existing style retrieval
+      const mockQueryChain = {
+        where: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            toArray: jest.fn().mockResolvedValue([existingStyle]),
+          }),
+        }),
+      };
+      mockTable.query.mockReturnValue(mockQueryChain);
+
+      // Mock successful native update
+      mockTable.update.mockResolvedValue(undefined);
+      mockEmbeddingService.embed.mockResolvedValue([1.0, 1.1, 1.2]);
+
+      const result = await service.updateStyle('custom_001', updateData);
+      
+      // Should use native update, not fallback
+      expect(mockTable.update).toHaveBeenCalled();
+      expect(mockTable.delete).not.toHaveBeenCalled();
+      expect(result.style).toBe(updateData.style);
+    });
   });
 
   describe('deleteStyles', () => {

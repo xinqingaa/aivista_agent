@@ -40,7 +40,12 @@ lerna-debug.log*
 .env.*.local
 
 # Data
-data/
+# 忽略临时数据，但保留初始知识库数据库
+data/*
+!data/lancedb/
+!data/lancedb/styles.lance/
+!data/README.md
+!data/.gitkeep
 *.db
 *.sqlite
 

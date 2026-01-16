@@ -2,7 +2,6 @@ import {
   Controller, 
   Get, 
   Post, 
-  Put, 
   Patch, 
   Delete, 
   Param, 
@@ -313,7 +312,7 @@ export class KnowledgeController {
   }
 
   /**
-   * 添加新风格（可选，用于未来扩展）
+   * 添加新风格
    * 
    * POST /api/knowledge/styles
    */
@@ -336,28 +335,6 @@ export class KnowledgeController {
       message: 'Style added successfully',
       id: styleData.id,
     };
-  }
-
-  /**
-   * 完全更新风格
-   * 
-   * PUT /api/knowledge/styles/:id
-   */
-  @Put('styles/:id')
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '完全更新风格' })
-  @ApiParam({ name: 'id', description: '风格ID' })
-  @ApiBody({ type: UpdateStyleDto })
-  @ApiResponse({ status: 204, description: '更新成功' })
-  @ApiResponse({ status: 404, description: '风格不存在' })
-  @ApiResponse({ status: 403, description: '不能修改系统内置风格' })
-  async updateStyle(
-    @Param('id') id: string, 
-    @Body() updateDto: UpdateStyleDto
-  ): Promise<void> {
-    this.logger.log(`Updating style: ${id}`);
-    await this.knowledgeService.updateStyle(id, updateDto);
   }
 
   /**

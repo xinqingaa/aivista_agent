@@ -20,6 +20,38 @@
 
 **数据库位置**: `main/server/data/lancedb/styles.lance/`
 
+**数据库大小**: 约 156KB（包含 5 条初始风格数据）
+
+### 2.1 Git 版本控制
+
+初始知识库数据库已纳入 Git 版本控制：
+
+- **文件**: `data/lancedb/styles.lance/`
+- **大小**: 约 156KB
+- **说明**: `data/README.md`
+
+**优势**:
+- ✅ 用户 clone 后可直接使用，无需额外配置
+- ✅ 避免首次启动时的 Embedding API 调用成本
+- ✅ 开发环境立即可用
+
+**注意事项**:
+- ⚠️ 数据库文件是二进制格式，Git 无法做 diff
+- ⚠️ 如果后续修改数据库，需要重新生成文件
+- ⚠️ 开发者和生产环境数据可能不一致（这是预期行为）
+
+**重新初始化**:
+```bash
+# 删除现有数据库
+rm -rf data/lancedb/
+
+# 设置强制初始化环境变量
+export FORCE_INIT_KNOWLEDGE_BASE=true
+
+# 启动服务（会自动生成数据库）
+pnpm run start:dev
+```
+
 ## 3. 本地数据库查看方法
 
 ### 3.1 方法 1：使用管理 API（推荐）
