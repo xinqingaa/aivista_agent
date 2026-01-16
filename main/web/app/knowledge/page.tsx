@@ -4,10 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   KnowledgeStats,
   StyleSearch,
-  EnhancedStyleList
+  StyleList
 } from '@/components/knowledge';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,8 @@ import {
 import { 
   StyleEditDialog,
   BatchDeleteConfirm,
-  StyleActions
+  StyleActions,
+  StyleForm
 } from '@/components/knowledge';
 import { 
   getStyles,
@@ -173,7 +174,9 @@ export default function KnowledgePage() {
 
   const handleSave = async (updatedStyle: StyleData) => {
     try {
-      await updateStyle(selectedStyle!.id, updatedStyle);
+      // 解构StyleData 移除id
+      const { id, ...rest } = updatedStyle;
+      await updateStyle(id, rest);
       
       toast({
         title: '更新成功',
@@ -220,29 +223,29 @@ export default function KnowledgePage() {
         <KnowledgeStats />
       </div>
 
-      <div className="flex gap-4 items-center">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-background/50 p-4 rounded-2xl border border-muted/40 backdrop-blur-sm">
+        <div className="flex-1 w-full max-w-md">
           <StyleSearch query={searchQuery} onQueryChange={setSearchQuery} />
         </div>
         
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => setShowForm(true)} className="rounded-xl px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95">
           <Plus className="mr-2 h-4 w-4" />
-          添加风格
+          新增视觉风格
         </Button>
       </div>
 
-      <StyleActions
-        styles={filteredStyles}
-        selectedIds={selectedIds}
-        onSelectAll={handleSelectAll}
-        onSelectNone={handleSelectNone}
-        onDeleteSelected={handleDeleteSelected}
-        isSelectMode={isSelectMode}
-        onToggleSelectMode={toggleSelectMode}
-      />
+      <div className="space-y-4">
+        <StyleActions
+          styles={filteredStyles}
+          selectedIds={selectedIds}
+          onSelectAll={handleSelectAll}
+          onSelectNone={handleSelectNone}
+          onDeleteSelected={handleDeleteSelected}
+          isSelectMode={isSelectMode}
+          onToggleSelectMode={toggleSelectMode}
+        />
 
-      <div className="relative">
-        <EnhancedStyleList
+        <StyleList
           styles={filteredStyles}
           loading={loading}
           selectedIds={selectedIds}
@@ -261,15 +264,22 @@ export default function KnowledgePage() {
       </div>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>添加新风格</DialogTitle>
-            <DialogDescription>向知识库添加新的风格数据</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="text-center text-muted-foreground">
-              添加表单功能开发中...
+        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="p-6 pb-0 flex-shrink-0">
+            <div className="flex items-center gap-2 text-primary mb-1">
+              <Sparkles className="h-5 w-5" />
+              <DialogTitle className="text-2xl font-black tracking-tight">新增视觉风格</DialogTitle>
             </div>
+            <DialogDescription className="text-sm font-medium text-muted-foreground">
+              定义一个新的 AI 生成风格，包含 Prompt 词缀和元数据。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6 pt-2 overflow-y-auto custom-scrollbar flex-1">
+            <StyleForm
+              onSubmit={handleCreate}
+              onCancel={() => setShowForm(false)}
+              submitLabel="立即创建风格"
+            />
           </div>
         </DialogContent>
       </Dialog>

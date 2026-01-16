@@ -1,22 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Edit, Eye } from 'lucide-react';
+import { 
+  Edit, 
+  Eye, 
+  Quote, 
+  Tag, 
+  Info, 
+  Settings,
+  Calendar,
+  Layers
+} from 'lucide-react';
 import type { StyleData } from '@/lib/types/knowledge';
-import { useToast } from '@/hooks/use-toast';
+import { StyleForm } from './StyleForm';
+import { cn } from '@/lib/utils';
 
 interface StyleEditDialogProps {
   open: boolean;
@@ -27,284 +32,173 @@ interface StyleEditDialogProps {
   isSystem?: boolean;
 }
 
-interface FormData {
-  style: string;
-  prompt: string;
-  description: string;
-  tags: string;
-  metadata: string;
-}
-
 export function StyleEditDialog({
   open,
   onOpenChange,
   style,
-  mode = 'view',
+  mode: initialMode = 'view',
   onSave,
   isSystem = false
 }: StyleEditDialogProps) {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    style: '',
-    prompt: '',
-    description: '',
-    tags: '',
-    metadata: '',
+  const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
+
+  // Synchronize internal mode with prop when dialog opens
+  useState(() => {
+    if (open) setMode(initialMode);
   });
 
-  // 当style改变时更新表单数据
-  useEffect(() => {
-    if (style) {
-      setFormData({
-        style: style.style || '',
-        prompt: style.prompt || '',
-        description: style.description || '',
-        tags: style.tags?.join(', ') || '',
-        metadata: style.metadata ? JSON.stringify(style.metadata, null, 2) : '',
-      });
-    } else {
-      setFormData({
-        style: '',
-        prompt: '',
-        description: '',
-        tags: '',
-        metadata: '',
+  if (!style) return null;
+
+  const handleSave = async (formData: any) => {
+    if (onSave) {
+      await onSave({
+        ...style,
+        ...formData
       });
     }
-  }, [style]);
-
-  const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // Mode will be reset by parent when dialog closes or handled here
   };
-
-  const handleSave = async () => {
-    if (!style || mode !== 'edit') return;
-
-    // 验证必填字段
-    if (!formData.style.trim() || !formData.prompt.trim()) {
-      toast({
-        variant: 'destructive',
-        title: '验证失败',
-        description: '风格名称和提示词为必填项',
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // 准备更新数据
-      const updateData: any = {
-        style: formData.style.trim(),
-        prompt: formData.prompt.trim(),
-        description: formData.description.trim() || undefined,
-      };
-
-      // 处理标签
-      if (formData.tags.trim()) {
-        updateData.tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-      }
-
-      // 处理元数据
-      if (formData.metadata.trim()) {
-        try {
-          updateData.metadata = JSON.parse(formData.metadata);
-        } catch (error) {
-          toast({
-            variant: 'destructive',
-            title: '元数据格式错误',
-            description: '请输入有效的JSON格式',
-          });
-          return;
-        }
-      }
-
-      // 系统内置样式只能更新部分字段
-      if (isSystem) {
-        const allowedFields = ['description', 'tags', 'metadata'];
-        const systemUpdateData: any = {};
-        Object.keys(updateData).forEach(key => {
-          if (allowedFields.includes(key)) {
-            systemUpdateData[key] = updateData[key];
-          }
-        });
-        
-        if (onSave) {
-          await onSave({
-            ...style,
-            ...systemUpdateData
-          });
-        }
-      } else {
-        if (onSave) {
-          await onSave({
-            ...style,
-            ...updateData
-          });
-        }
-      }
-
-      toast({
-        title: '保存成功',
-        description: `${style.style} 已更新`,
-      });
-      
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to save style:', error);
-      toast({
-        variant: 'destructive',
-        title: '保存失败',
-        description: error instanceof Error ? error.message : '未知错误',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isReadOnly = mode === 'view';
-  const canEdit = mode === 'edit';
-  const isSystemStyle = isSystem && mode === 'edit';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {mode === 'view' ? (
-              <>
-                <Eye className="h-5 w-5" />
-                查看风格详情
-              </>
-            ) : (
-              <>
-                <Edit className="h-5 w-5" />
-                编辑风格
-              </>
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'view' ? '查看风格的详细信息' : '编辑风格的属性（系统内置样式只能修改描述、标签和元数据）'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6 py-4">
-          {/* 风格名称 */}
-          <div className="space-y-2">
-            <Label htmlFor="style">风格名称 *</Label>
-            <Input
-              id="style"
-              value={formData.style}
-              onChange={(e) => handleInputChange('style', e.target.value)}
-              disabled={isReadOnly || isSystemStyle || loading}
-              placeholder="请输入风格名称"
-              className={(isReadOnly || isSystemStyle) ? 'bg-muted' : ''}
-            />
-            {isSystemStyle && (
-              <p className="text-xs text-muted-foreground">系统样式名称不可修改</p>
-            )}
-          </div>
-
-          {/* 提示词 */}
-          <div className="space-y-2">
-            <Label htmlFor="prompt">提示词 *</Label>
-            <Textarea
-              id="prompt"
-              value={formData.prompt}
-              onChange={(e) => handleInputChange('prompt', e.target.value)}
-              disabled={isReadOnly || isSystemStyle || loading}
-              placeholder="请输入风格提示词"
-              rows={4}
-              className={(isReadOnly || isSystemStyle) ? 'resize-none bg-muted' : 'resize-none'}
-            />
-            {isSystemStyle && (
-              <p className="text-xs text-muted-foreground">系统样式提示词不可修改</p>
-            )}
-          </div>
-
-          {/* 描述 */}
-          <div className="space-y-2">
-            <Label htmlFor="description">描述</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              disabled={isReadOnly || loading}
-              placeholder="请输入风格描述"
-              rows={3}
-              className="resize-none"
-            />
-          </div>
-
-          {/* 标签 */}
-          <div className="space-y-2">
-            <Label htmlFor="tags">标签</Label>
-            <Input
-              id="tags"
-              value={formData.tags}
-              onChange={(e) => handleInputChange('tags', e.target.value)}
-              disabled={isReadOnly || loading}
-              placeholder="请输入标签，多个标签用逗号分隔"
-            />
-            {formData.tags.trim() && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {formData.tags.split(',').map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {tag.trim()}
+      <DialogContent className="max-w-2xl max-h-[95vh] overflow-hidden flex flex-col p-0 gap-0 border-none shadow-2xl">
+        {/* Header Section */}
+        <div className="p-6 pb-4 bg-muted/30 border-b relative">
+          <div className="flex justify-between items-start pr-8">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                {mode === 'view' ? <Eye className="h-5 w-5 text-primary" /> : <Edit className="h-5 w-5 text-primary" />}
+                <DialogTitle className="text-2xl font-black tracking-tight">
+                  {mode === 'view' ? style.style : `编辑: ${style.style}`}
+                </DialogTitle>
+                {isSystem && (
+                  <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] uppercase font-bold px-2">
+                    System
                   </Badge>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-
-          {/* 元数据 */}
-          <div className="space-y-2">
-            <Label htmlFor="metadata">元数据 (JSON格式)</Label>
-            <Textarea
-              id="metadata"
-              value={formData.metadata}
-              onChange={(e) => handleInputChange('metadata', e.target.value)}
-              disabled={isReadOnly || loading}
-              placeholder='{"category": "digital", "popularity": 85}'
-              rows={4}
-              className="font-mono text-sm resize-none"
-            />
-            {formData.metadata.trim() && (
-              <div className="mt-2 p-3 bg-muted rounded-md">
-                <div className="text-xs font-mono">
-                  <pre className="whitespace-pre-wrap">{formData.metadata}</pre>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground font-medium">
+                {mode === 'view' ? '查看详情与 Prompt 配置' : '修改风格配置信息'}
+              </p>
+            </div>
+            
+            {mode === 'view' && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setMode('edit')}
+                className="gap-2 h-8 font-bold border-primary/20 hover:bg-primary/5 hover:text-primary transition-all"
+              >
+                <Edit className="h-3.5 w-3.5" />
+                进入编辑
+              </Button>
             )}
           </div>
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
-            取消
-          </Button>
-          
-          {mode === 'edit' && (
-            <Button onClick={handleSave} disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              保存
-            </Button>
-          )}
-          
-          {mode === 'view' && isSystem && (
-            <div className="text-sm text-muted-foreground">
-              系统内置样式，部分字段不可编辑
+        {/* Content Section */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {mode === 'view' ? (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Description */}
+              {style.description && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                    <Info className="h-3.5 w-3.5" />
+                    描述
+                  </div>
+                  <p className="text-sm leading-relaxed text-foreground/90 bg-muted/20 p-3 rounded-lg border border-muted/10">
+                    {style.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Prompt - High Contrast Box */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                  <Quote className="h-3.5 w-3.5" />
+                  Prompt 配置
+                </div>
+                <div className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-primary/5 rounded-xl blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
+                  <div className="relative bg-background border border-primary/10 rounded-xl p-5 shadow-inner">
+                    <p className="text-sm font-mono leading-loose text-foreground/80 italic">
+                      {style.prompt}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags */}
+              {style.tags && style.tags.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                    <Tag className="h-3.5 w-3.5" />
+                    标签
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {style.tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="px-3 py-1 bg-muted/50 hover:bg-muted text-xs transition-colors">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Metadata & Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                    <Settings className="h-3.5 w-3.5" />
+                    元数据
+                  </div>
+                  <pre className="text-[11px] font-mono p-4 rounded-xl bg-muted/40 border border-muted/10 overflow-x-auto leading-relaxed">
+                    {JSON.stringify(style.metadata || {}, null, 2)}
+                  </pre>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                    <Layers className="h-3.5 w-3.5" />
+                    系统信息
+                  </div>
+                  <div className="space-y-2 rounded-xl border border-muted/10 p-4 bg-muted/20">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3" /> ID
+                      </span>
+                      <span className="font-mono font-medium">{style.id}</span>
+                    </div>
+                    {/* Add more info here if available in style object */}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <StyleForm
+                initialData={style}
+                onSubmit={handleSave}
+                onCancel={() => setMode('view')}
+                isSystem={isSystem}
+                submitLabel="保存更改"
+              />
             </div>
           )}
-        </DialogFooter>
+        </div>
+
+        {/* Footer info for system styles */}
+        {mode === 'edit' && isSystem && (
+          <div className="px-6 py-3 bg-orange-50 border-t border-orange-100 flex items-center gap-3">
+            <div className="p-1 rounded-full bg-orange-100 text-orange-600">
+              <Info className="h-3.5 w-3.5" />
+            </div>
+            <p className="text-[11px] text-orange-700 font-medium leading-tight">
+              注意：系统内置风格的核心属性（名称和 Prompt）受保护无法修改，但您可以优化描述和标签。
+            </p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

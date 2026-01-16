@@ -499,26 +499,48 @@ export class KnowledgeService implements OnModuleInit {
         }
       }
 
-      // 检查 prompt 是否变化，如果变化需要重新计算向量
+      // 检查核心文本是否变化，如果变化需要重新计算向量
       let newVector = existing.vector;
-      if (updateData.prompt && updateData.prompt !== existing.prompt) {
-        const text = `${updateData.style || existing.style} ${updateData.prompt} ${updateData.description || existing.description || ''}`;
+      const styleText = updateData.style !== undefined ? updateData.style : existing.style;
+      const promptText = updateData.prompt !== undefined ? updateData.prompt : existing.prompt;
+      const descText = updateData.description !== undefined ? updateData.description : (existing.description || '');
+      
+      const hasTextChanged = 
+        (updateData.style !== undefined && updateData.style !== existing.style) ||
+        (updateData.prompt !== undefined && updateData.prompt !== existing.prompt) ||
+        (updateData.description !== undefined && updateData.description !== existing.description);
+
+      if (hasTextChanged) {
+        const text = `${styleText} ${promptText} ${descText}`;
         newVector = await this.embeddingService.embed(text);
       }
 
-      // 执行更新
-      const updatedData = {
-        ...existing,
-        ...updateData,
-        vector: newVector,
+      // 构建更新对象，确保字段类型正确且不包含 LanceDB 可能附带的内部字段
+      const updatedRecord: any = {
+        id: existing.id,
+        style: styleText,
+        prompt: promptText,
+        description: descText,
+        tags: updateData.tags !== undefined ? updateData.tags : (existing.tags || []),
+        // 确保 metadata 始终是字符串
+        metadata: updateData.metadata !== undefined 
+          ? JSON.stringify(updateData.metadata) 
+          : (typeof existing.metadata === 'string' ? existing.metadata : JSON.stringify(existing.metadata || {})),
+        // 确保 vector 是标准数组
+        vector: Array.isArray(newVector) ? newVector : Array.from(newVector as any),
+        isSystem: isSystem,
+        createdAt: existing.createdAt,
         updatedAt: new Date(),
       };
 
       // LanceDB 更新操作
-      await this.table.update([updatedData]);
+      // 由于当前版本的 LanceDB Node.js SDK 对 update API 的支持可能存在转换问题
+      // 我们采用先删除后添加的方式来实现更新
+      await this.table.delete(`id = '${id}'`);
+      await this.table.add([updatedRecord]);
       this.logger.log(`Updated style: ${id}`);
       
-      return updatedData;
+      return this.mapDbRecordToStyleData(updatedRecord);
     } catch (error) {
       if (error instanceof ForbiddenException || error instanceof NotFoundException) {
         throw error;
@@ -591,7 +613,10 @@ export class KnowledgeService implements OnModuleInit {
       });
 
       if (updates.length > 0) {
-        await this.table.update(updates);
+        // 采用先删除后添加的方式进行批量更新
+        const ids = updates.map(u => `'${u.id}'`).join(',');
+        await this.table.delete(`id IN (${ids})`);
+        await this.table.add(updates);
         this.logger.log(`Database migration completed: ${updates.length} styles updated`);
       }
     } catch (error) {
