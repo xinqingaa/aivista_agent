@@ -70,6 +70,8 @@ export class AgentService {
                   message: log.message,
                 },
               };
+              // 每条思考日志后延迟 300ms，增强流式效果
+              await new Promise(resolve => setTimeout(resolve, 300));
             }
           }
 
@@ -110,6 +112,8 @@ export class AgentService {
               timestamp: Date.now(),
               data: update.enhancedPrompt,
             };
+            // RAG 节点后延迟 500ms，让用户看到检索过程
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
 
           // Critic 节点执行后，推送 qualityCheck 信息（可选）
@@ -133,6 +137,8 @@ export class AgentService {
                 timestamp: component.timestamp || Date.now(),
                 data: component,
               };
+              // 每个组件间延迟 200ms，增强流式效果
+              await new Promise(resolve => setTimeout(resolve, 200));
             }
           }
         }

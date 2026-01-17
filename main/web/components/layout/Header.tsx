@@ -25,6 +25,17 @@ export function Header() {
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link
+              href="/chat"
+              className={cn(
+                'transition-colors',
+                pathname === '/chat'
+                  ? 'text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground/80'
+              )}
+            >
+              AI 聊天
+            </Link>
+            <Link
               href="/knowledge"
               className={cn(
                 'transition-colors',

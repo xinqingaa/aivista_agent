@@ -10,8 +10,11 @@ export default function Home() {
           欢迎使用 AiVista Web 前端应用
         </p>
         <div className="flex gap-4">
+          <Link href="/chat">
+            <Button>AI 聊天</Button>
+          </Link>
           <Link href="/knowledge">
-            <Button>知识库管理</Button>
+            <Button variant="outline">知识库管理</Button>
           </Link>
         </div>
       </div>
