@@ -51,6 +51,9 @@ class StyleResponseDto {
 
   @ApiProperty({ description: '元数据', example: { category: 'digital', popularity: 85 }, required: false })
   metadata?: Record<string, any>;
+
+  @ApiProperty({ description: '是否为系统内置风格', example: false, required: false })
+  isSystem?: boolean;
 }
 
 /**
@@ -180,6 +183,7 @@ export class KnowledgeController {
       description: style.description,
       tags: style.tags,
       metadata: style.metadata,
+      isSystem: style.isSystem,
     }));
   }
 
@@ -215,6 +219,7 @@ export class KnowledgeController {
       description: style.description,
       tags: style.tags,
       metadata: style.metadata,
+      isSystem: style.isSystem,
     };
   }
 

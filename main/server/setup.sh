@@ -37,10 +37,10 @@ if [ ! -f .env ]; then
     # 替换 API Key
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        sed -i '' 's/DASHSCOPE_API_KEY=your_dashscope_api_key_here/DASHSCOPE_API_KEY=sk-80cda2f2a44b4578b637b2dad2ab7b42/' .env
+        sed -i '' 's/DASHSCOPE_API_KEY=your_dashscope_api_key_here/DASHSCOPE_API_KEY=xxx/' .env
     else
         # Linux
-        sed -i 's/DASHSCOPE_API_KEY=your_dashscope_api_key_here/DASHSCOPE_API_KEY=sk-80cda2f2a44b4578b637b2dad2ab7b42/' .env
+        sed -i 's/DASHSCOPE_API_KEY=your_dashscope_api_key_here/DASHSCOPE_API_KEY=xxx' .env
     fi
     
     # 验证文件创建成功

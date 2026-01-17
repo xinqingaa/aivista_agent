@@ -34,12 +34,12 @@ export function BatchDeleteConfirm({
 
   // 统计系统内置样式的数量
   const systemStylesCount = selectedStyles.filter(style => 
-    style.id.startsWith('style_00') // 系统内置样式都是 style_00x 格式
+    style.isSystem
   ).length;
 
   const canDeleteCount = selectedStyles.length - systemStylesCount;
   const systemStyles = selectedStyles.filter(style => 
-    style.id.startsWith('style_00')
+    style.isSystem
   );
 
   const handleConfirm = async () => {
@@ -96,7 +96,7 @@ export function BatchDeleteConfirm({
             <h4 className="text-sm font-medium">选中的样式：</h4>
             <div className="space-y-1">
               {selectedStyles.map((style) => {
-                const isSystem = style.id.startsWith('style_00');
+                const isSystem = style.isSystem;
                 return (
                   <div 
                     key={style.id}

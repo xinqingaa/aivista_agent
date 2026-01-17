@@ -3,6 +3,7 @@ export { StyleList } from './StyleList';
 export { StyleEditDialog } from './StyleEditDialog';
 export { StyleForm } from './StyleForm';
 export { BatchDeleteConfirm } from './BatchDeleteConfirm';
+export { DeleteConfirm } from './DeleteConfirm';
 export { StyleActions } from './StyleActions';
 export { KnowledgeStats } from './KnowledgeStats';
 export { StyleSearch } from './StyleSearch';

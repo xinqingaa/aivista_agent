@@ -28,7 +28,7 @@ export function StyleList({
   isSelectMode = false
 }: StyleListProps) {
   const isSystemStyle = (style: StyleData) => {
-    return style.id.startsWith('style_00');
+    return style.isSystem;
   };
 
   if (loading) {
@@ -89,7 +89,7 @@ export function StyleList({
             onEdit={onEdit}
             onDelete={onDelete}
             showActions={showActions || isSelectMode}
-            isSystem={isSystemStyle(style)}
+            isSelectMode={isSelectMode}
           />
         );
       })}

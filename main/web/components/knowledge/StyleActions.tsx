@@ -27,9 +27,9 @@ export function StyleActions({
   const totalCount = styles.length;
   const selectedCount = selectedIds.length;
   const isAllSelected = selectedCount === totalCount && totalCount > 0;
-  const hasSystemStyles = styles.some(style => style.id.startsWith('style_00'));
+  const hasSystemStyles = styles.some(style => style.isSystem);
 
-  const deletableCount = selectedIds.filter(id => !id.startsWith('style_00')).length;
+  const deletableCount = selectedIds.filter(id => !styles.find(style => style.id === id)?.isSystem).length;
   const canDelete = deletableCount > 0;
 
   return (
@@ -87,9 +87,8 @@ export function StyleActions({
       {isSelectMode && selectedCount > 0 && (
         <div className="flex items-center gap-3">
           {/* 系统样式警告 */}
-          {hasSystemStyles && selectedIds.some(id => id.startsWith('style_00')) && (
+          {hasSystemStyles && selectedIds.some(id => styles.find(style => style.id === id)?.isSystem) && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <span>⚠️</span>
               <span>包含系统样式</span>
             </div>
           )}

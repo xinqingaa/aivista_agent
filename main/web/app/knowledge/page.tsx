@@ -15,9 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { 
+import {
   StyleEditDialog,
   BatchDeleteConfirm,
+  DeleteConfirm,
   StyleActions,
   StyleForm
 } from '@/components/knowledge';
@@ -49,6 +50,8 @@ export default function KnowledgePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSingleDeleteConfirm, setShowSingleDeleteConfirm] = useState(false);
+  const [styleToDelete, setStyleToDelete] = useState<StyleData | null>(null);
 
   const loadStyles = async () => {
     try {
@@ -84,7 +87,7 @@ export default function KnowledgePage() {
   }, [styles, searchQuery]);
 
   const isSystemStyle = (style: StyleData) => {
-    return style.id.startsWith('style_00');
+    return style.isSystem;
   };
 
   const handleStyleClick = (style: StyleData) => {
@@ -115,8 +118,32 @@ export default function KnowledgePage() {
       });
       return;
     }
-    setSelectedStyle(style);
-    deleteStyleConfirm([style]);
+    setStyleToDelete(style);
+    setShowSingleDeleteConfirm(true);
+  };
+
+  const handleSingleDeleteConfirm = async () => {
+    if (!styleToDelete) return;
+
+    try {
+      await deleteStyle(styleToDelete.id);
+
+      toast({
+        title: '删除成功',
+        description: `已删除风格：${styleToDelete.style}`,
+      });
+
+      setShowSingleDeleteConfirm(false);
+      setStyleToDelete(null);
+      await loadStyles();
+    } catch (error) {
+      console.error('Failed to delete style:', error);
+      toast({
+        variant: 'destructive',
+        title: '删除失败',
+        description: error instanceof Error ? error.message : '未知错误',
+      });
+    }
   };
 
   const handleSelectAll = () => {
@@ -135,40 +162,23 @@ export default function KnowledgePage() {
   const handleBatchDeleteConfirm = async () => {
     const selectedStyles = filteredStyles.filter(style => selectedIds.includes(style.id));
     const result = await deleteStyles(selectedStyles.map(style => style.id));
-    
+
     if (result.failed.length > 0) {
       toast({
         variant: 'destructive',
         title: '部分删除失败',
         description: `${result.failed.join(', ')} 删除失败`,
       });
+    } else {
+      toast({
+        title: '删除成功',
+        description: `成功删除 ${result.deleted} 个风格`,
+      });
     }
-    
+
     setSelectedIds([]);
     setShowDeleteConfirm(false);
     setIsSelectMode(false);
-    await loadStyles();
-  };
-
-  const deleteStyleConfirm = async (stylesToDelete: StyleData[]) => {
-    if (stylesToDelete.length === 1) {
-      await deleteStyle(stylesToDelete[0].id);
-      setSelectedIds(prev => prev.filter(id => id !== stylesToDelete[0].id));
-    } else {
-      const idsToDelete = stylesToDelete.map(style => style.id);
-      const result = await deleteStyles(idsToDelete);
-      
-      if (result.failed.length > 0) {
-        toast({
-          variant: 'destructive',
-          title: '部分删除失败',
-          description: `${result.failed.join(', ')} 删除失败`,
-        });
-      }
-      
-      setSelectedIds(prev => prev.filter(id => !result.failed.includes(id)));
-    }
-    
     await loadStyles();
   };
 
@@ -235,7 +245,7 @@ export default function KnowledgePage() {
       </div>
 
       <div className="space-y-4">
-        <StyleActions
+        {/* <StyleActions
           styles={filteredStyles}
           selectedIds={selectedIds}
           onSelectAll={handleSelectAll}
@@ -243,7 +253,7 @@ export default function KnowledgePage() {
           onDeleteSelected={handleDeleteSelected}
           isSelectMode={isSelectMode}
           onToggleSelectMode={toggleSelectMode}
-        />
+        /> */}
 
         <StyleList
           styles={filteredStyles}
@@ -298,6 +308,13 @@ export default function KnowledgePage() {
         onOpenChange={setShowDeleteConfirm}
         selectedStyles={filteredStyles.filter(style => selectedIds.includes(style.id))}
         onConfirm={handleBatchDeleteConfirm}
+      />
+
+      <DeleteConfirm
+        open={showSingleDeleteConfirm}
+        onOpenChange={setShowSingleDeleteConfirm}
+        style={styleToDelete}
+        onConfirm={handleSingleDeleteConfirm}
       />
     </div>
   );

@@ -9,6 +9,9 @@ export interface StyleData {
     popularity?: number;
     [key: string]: any;
   };
+  isSystem?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface SearchOptions {

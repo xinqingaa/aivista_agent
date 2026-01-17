@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Trash2, Eye, MoreHorizontal } from 'lucide-react';
+import { Edit, Trash2, Eye, MoreHorizontal, Shield } from 'lucide-react';
 import type { StyleData } from '@/lib/types/knowledge';
 import { cn } from '@/lib/utils';
 
@@ -16,19 +16,21 @@ interface StyleCardProps {
   onEdit?: (style: StyleData) => void;
   onDelete?: (style: StyleData) => void;
   showActions?: boolean;
-  isSystem?: boolean;
+  isSelectMode?: boolean;
 }
 
-export function StyleCard({ 
-  style, 
+export function StyleCard({
+  style,
   isSelected = false,
   onSelect,
   onView,
   onEdit,
   onDelete,
   showActions = false,
-  isSystem = false
+  isSelectMode = false,
 }: StyleCardProps) {
+  // 从 style 对象读取 isSystem，确保数据一致性
+  const isSystem = style.isSystem || false;
   const handleCardClick = (e: React.MouseEvent) => {
     // If clicking checkbox area or buttons, don't trigger view
     if ((e.target as HTMLElement).closest('.card-action-btn')) return;
@@ -38,7 +40,8 @@ export function StyleCard({
     }
   };
 
-  const handleSelectChange = (checked: boolean) => {
+  const handleSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
     if (onSelect) {
       onSelect(style.id, !!checked);
     }
@@ -80,7 +83,7 @@ export function StyleCard({
           >
             <Checkbox
               checked={isSelected}
-              onCheckedChange={handleSelectChange}
+              onChange={(e) => handleSelectChange(e)}
               className="h-4 w-4 pointer-events-auto"
               aria-label={`选择 ${style.style}`}
             />
@@ -88,8 +91,12 @@ export function StyleCard({
         ) : <div />}
 
         {isSystem && (
-          <Badge variant="secondary" className="font-semibold text-[10px] uppercase tracking-tighter px-2 py-0 bg-primary/10 text-primary border-primary/20 backdrop-blur-md shadow-sm">
-            System
+          <Badge
+            variant="secondary"
+            className="font-semibold text-[10px] uppercase tracking-tighter px-2 py-0 bg-primary/10 text-primary border-primary/20 backdrop-blur-md shadow-sm flex items-center gap-1"
+          >
+            <Shield className="w-3 h-3" />
+            系统风格
           </Badge>
         )}
       </div>
@@ -154,7 +161,7 @@ export function StyleCard({
                 size="icon"
                 onClick={handleEdit}
                 className="h-8 w-8 rounded-lg hover:bg-primary hover:text-primary-foreground shadow-sm transition-all active:scale-90"
-                title={isSystem ? "系统内置样式限部分编辑" : "编辑"}
+                title={isSystem ? "系统内置样式，仅可编辑部分字段" : "编辑"}
               >
                 <Edit className="h-4 w-4" />
               </Button>

@@ -3,15 +3,24 @@
 import { useEffect, useState } from 'react';
 import { getStyles, searchStyles } from '@/lib/api/knowledge';
 import type { StyleData } from '@/lib/types/knowledge';
-import { StyleCard } from './StyleCard';
+import { StyleCard } from '@/components/knowledge'; // 使用完整版组件
 import { Card, CardContent } from '@/components/ui/card';
 
 interface StyleListProps {
   searchQuery?: string;
   onStyleClick?: (style: StyleData) => void;
+  onEdit?: (style: StyleData) => void;
+  onDelete?: (style: StyleData) => void;
+  showActions?: boolean;
 }
 
-export function StyleList({ searchQuery, onStyleClick }: StyleListProps) {
+export function StyleList({
+  searchQuery,
+  onStyleClick,
+  onEdit,
+  onDelete,
+  showActions = true,
+}: StyleListProps) {
   const [styles, setStyles] = useState<StyleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -85,7 +94,10 @@ export function StyleList({ searchQuery, onStyleClick }: StyleListProps) {
         <StyleCard
           key={style.id}
           style={style}
-          onClick={() => onStyleClick?.(style)}
+          onView={onStyleClick}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          showActions={showActions}
         />
       ))}
     </div>
