@@ -1,14 +1,16 @@
 /**
  * EnhancedPrompt 展示组件
  * 显示 RAG 检索结果和增强后的 Prompt
+ * 风格：简约卡片
  */
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
 import { EnhancedPromptEvent } from '@/lib/types/sse';
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface EnhancedPromptViewProps {
   event: EnhancedPromptEvent;
@@ -16,64 +18,75 @@ interface EnhancedPromptViewProps {
 
 export function EnhancedPromptView({ event }: EnhancedPromptViewProps) {
   const { original, retrieved, final } = event.data;
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Card className="border-purple-200 dark:border-purple-800">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Search className="h-4 w-4 text-purple-500" />
-          RAG 风格检索结果
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* 原始 Prompt */}
-        <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1.5">
-            原始 Prompt
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden my-4">
+      {/* 头部：最终结果 */}
+      <div className="p-4 bg-muted/30">
+        <div className="flex items-start gap-3">
+          <div className="mt-1 p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md text-blue-600 dark:text-blue-400">
+            <Sparkles className="w-4 h-4" />
           </div>
-          <div className="text-sm bg-muted/50 p-2.5 rounded-md border">
-            {original}
+          <div className="space-y-1 flex-1">
+            <div className="text-sm font-medium">Prompt 已优化</div>
+            <div className="text-sm text-muted-foreground leading-relaxed">
+              {final}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* 检索到的风格 */}
-        {retrieved && retrieved.length > 0 && (
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2">
-              检索到的风格 ({retrieved.length})
-            </div>
+      {/* 详情：折叠区域 */}
+      <div className="border-t">
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+        >
+          {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          <span>查看优化详情 (RAG 检索结果)</span>
+        </button>
+        
+        {isOpen && (
+          <div className="px-4 py-3 space-y-4 bg-background animate-in slide-in-from-top-2 duration-200">
+            {/* 原始输入 */}
             <div className="space-y-2">
-              {retrieved.map((item, index) => (
-                <div
-                  key={index}
-                  className="border-l-2 border-purple-400 dark:border-purple-600 pl-3 py-2 bg-purple-50/50 dark:bg-purple-950/30 rounded-r"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm">{item.style}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {(item.similarity * 100).toFixed(0)}% 相似
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-muted-foreground line-clamp-2">
-                    {item.prompt}
-                  </div>
-                </div>
-              ))}
+              <span className="text-xs font-medium text-muted-foreground">原始输入</span>
+              <div className="text-sm p-3 bg-muted/50 rounded-md text-foreground">
+                {original}
+              </div>
             </div>
+
+            {/* 检索结果 */}
+            {retrieved && retrieved.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                  <Search className="w-3 h-3" />
+                  参考风格 ({retrieved.length})
+                </span>
+                <div className="grid gap-2">
+                  {retrieved.map((item, index) => (
+                    <div 
+                      key={index}
+                      className="text-xs p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-semibold text-foreground">{item.style}</span>
+                        <Badge variant="outline" className="text-[10px] h-5">
+                          相似度 {(item.similarity * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground line-clamp-2">
+                        {item.prompt}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
-
-        {/* 增强后的 Prompt */}
-        <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-            增强后的 Prompt
-          </div>
-          <div className="text-sm bg-blue-50/50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-200/50 dark:border-blue-800/50">
-            {final}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

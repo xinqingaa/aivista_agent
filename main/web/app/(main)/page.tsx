@@ -11,7 +11,7 @@ export default function Home() {
         </p>
         <div className="flex gap-4">
           <Link href="/chat">
-            <Button>AI 聊天</Button>
+            <Button>AI 智绘</Button>
           </Link>
           <Link href="/knowledge">
             <Button variant="outline">知识库管理</Button>

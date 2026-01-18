@@ -143,6 +143,22 @@ export interface ThoughtLogEvent extends SSEEvent {
 }
 
 /**
+ * enhanced_prompt 事件的完整事件类型
+ */
+export interface EnhancedPromptEvent extends SSEEvent {
+  type: 'enhanced_prompt';
+  data: EnhancedPromptEventData;
+}
+
+/**
+ * gen_ui_component 事件的完整事件类型
+ */
+export interface GenUIComponentEvent extends SSEEvent {
+  type: 'gen_ui_component';
+  data: GenUIComponentEventData;
+}
+
+/**
  * SSE 连接状态
  */
 export type SSEConnectionStatus =

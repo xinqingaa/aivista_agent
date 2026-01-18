@@ -55,7 +55,7 @@ export function ImageView({ url, prompt, alt = 'Generated Image', actions }: Ima
   };
 
   return (
-    <Card className="overflow-hidden max-w-2xl mx-auto">
+    <Card className="overflow-hidden mx-auto">
       <CardContent className="p-0">
         {/* 图片容器 - 限制最大高度 */}
         <div className="relative bg-muted">

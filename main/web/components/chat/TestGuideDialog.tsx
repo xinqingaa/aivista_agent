@@ -23,12 +23,11 @@ export function TestGuideDialog() {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <HelpCircle className="h-4 w-4" />
-          测试指南
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>测试指南</DialogTitle>
+          <DialogTitle>指南</DialogTitle>
           <DialogDescription>
             了解如何使用和测试 AI 对话功能
           </DialogDescription>

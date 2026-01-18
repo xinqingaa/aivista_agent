@@ -5,9 +5,12 @@
 
 'use client';
 
+import Link from 'next/link';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { TestGuideDialog } from '@/components/chat/TestGuideDialog';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Home } from 'lucide-react';
 
 export default function ChatTestPage() {
   return (
@@ -21,13 +24,21 @@ export default function ChatTestPage() {
             AI智绘，创意闪现
             </p>
           </div>
+          <div className="flex items-center gap-2">
           <TestGuideDialog />
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                <Home className="h-4 w-4" />
+              </Button>
+            </Link>
+            
+          </div>
         </div>
       </div>
 
       {/* 聊天界面 */}
       <div className="flex-1 min-h-0 container mx-auto py-4">
-        <Card className="h-full">
+        <Card className="h-full border-0 sm:border bg-background/50 backdrop-blur-sm shadow-sm">
           <ChatInterface
             title="AI 画图"
             placeholder="输入你的创意，例如：生成一只赛博朋克风格的猫..."

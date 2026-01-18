@@ -33,7 +33,7 @@ export function Header() {
                   : 'text-muted-foreground hover:text-foreground/80'
               )}
             >
-              AI 聊天
+              AI 智绘
             </Link>
             <Link
               href="/knowledge"
