@@ -4,6 +4,24 @@
 
 本文档详细说明如何在前端展示 Agent 工作流的执行过程，包括思考日志、节点状态、进度展示等。
 
+### 1.1 实现状态
+
+**已完成** ✅：
+- SSE 客户端和事件处理（`lib/sse/`、`hooks/useSSE.ts`）
+- 聊天界面主组件（`components/chat/ChatInterface.tsx`）
+- 思考日志展示组件（`components/chat/ThoughtLogItem.tsx`）
+- 增强 Prompt 展示组件（`components/chat/EnhancedPromptView.tsx`）
+- 图片展示组件（`components/chat/ImageView.tsx`）
+- 测试页面和指南（`app/chat/page.tsx`、`components/chat/TestGuideDialog.tsx`）
+
+**详见**: [SSE 实现总结](../sse-implementation-summary.md)
+
+**规划中** 📋：
+- 高级工作流可视化组件（`components/features/AgentWorkflow/`）
+- 节点状态卡片组件
+- 工作流时间线组件
+- 更详细的进度展示
+
 ## 2. 工作流节点
 
 ### 2.1 节点类型
@@ -35,11 +53,22 @@ interface NodeState {
 
 ### 3.1 组件结构
 
+**已完成组件**（位于 `components/chat/`）：
+```
+chat/
+├── ChatInterface.tsx         # 聊天界面主组件（已完成）
+├── ThoughtLogItem.tsx        # 思考日志展示组件（已完成）
+├── EnhancedPromptView.tsx    # 增强 Prompt 展示（已完成）
+├── ImageView.tsx             # 图片展示组件（已完成）
+├── TestGuideDialog.tsx       # 测试指南对话框（已完成）
+└── WorkflowProgress.tsx      # 工作流进度组件（已完成）
+```
+
+**规划中的组件**（位于 `components/features/AgentWorkflow/`）：
 ```
 AgentWorkflow/
 ├── WorkflowViewer.tsx        # 工作流可视化组件
 ├── NodeStatus.tsx            # 节点状态组件
-├── ThoughtLog.tsx            # 思考日志组件
 ├── ProgressBar.tsx           # 进度条组件
 └── WorkflowTimeline.tsx      # 工作流时间线
 ```

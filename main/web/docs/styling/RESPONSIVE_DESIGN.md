@@ -130,7 +130,7 @@ export function ChatContainer() {
 ### 5.2 知识库列表
 
 ```typescript
-// components/features/KnowledgeBase/StyleList.tsx
+// components/knowledge/StyleList.tsx
 export function StyleList({ styles }: { styles: StyleData[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

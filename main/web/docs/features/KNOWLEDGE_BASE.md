@@ -70,7 +70,7 @@ KnowledgeBase/
 ### 4.2 主页面组件
 
 ```typescript
-// components/features/KnowledgeBase/KnowledgeBasePage.tsx
+// components/knowledge/KnowledgeBasePage.tsx
 'use client';
 
 import { useState } from 'react';
@@ -131,7 +131,7 @@ export function KnowledgeBasePage() {
 ### 4.3 风格列表组件
 
 ```typescript
-// components/features/KnowledgeBase/StyleList.tsx
+// components/knowledge/StyleList.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -212,7 +212,7 @@ export function StyleList({ searchQuery }: StyleListProps) {
 ### 4.4 风格卡片组件
 
 ```typescript
-// components/features/KnowledgeBase/StyleCard.tsx
+// components/knowledge/StyleCard.tsx
 'use client';
 
 import { StyleData } from '@/lib/api/knowledge';
@@ -263,7 +263,7 @@ export function StyleCard({ style }: StyleCardProps) {
 ### 4.5 搜索组件
 
 ```typescript
-// components/features/KnowledgeBase/StyleSearch.tsx
+// components/knowledge/StyleSearch.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -310,7 +310,7 @@ export function StyleSearch({ query, onQueryChange }: StyleSearchProps) {
 ### 4.6 添加风格表单
 
 ```typescript
-// components/features/KnowledgeBase/StyleForm.tsx
+// components/knowledge/StyleForm.tsx
 'use client';
 
 import { useState } from 'react';
@@ -460,7 +460,7 @@ export function StyleForm({ onSuccess, onCancel }: StyleFormProps) {
 ### 4.7 统计信息组件
 
 ```typescript
-// components/features/KnowledgeBase/KnowledgeStats.tsx
+// components/knowledge/KnowledgeStats.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

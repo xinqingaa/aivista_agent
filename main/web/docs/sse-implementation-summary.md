@@ -286,6 +286,21 @@ data: {"type":"thought_log","timestamp":1234567890,"data":{"node":"planner","mes
 
 ---
 
+## 🔗 相关文档
+
+### 前端文档
+- [项目结构说明](./architecture/PROJECT_STRUCTURE.md) - 完整的项目目录结构
+- [API 集成指南](./api/API_INTEGRATION.md) - API 集成说明
+- [Agent 工作流前端实现](./features/AGENT_WORKFLOW.md) - 工作流组件设计
+- [SSE 客户端文档](./api/SSE_CLIENT.md) - SSE 客户端详细说明
+
+### 后端文档
+- [API 参考文档](../server/docs/api/API_REFERENCE.md) - 后端 API 接口
+- [SSE 流式通信设计](../server/docs/workflow/SSE_STREAMING_DESIGN.md) - 后端 SSE 设计
+
+---
+
 **完成时间**: 约 2 小时
 **难度**: 中等
 **依赖**: 阶段 1 完成
+**状态**: ✅ 已完成并测试通过

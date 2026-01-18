@@ -20,112 +20,109 @@ main/web/
 │
 ├── app/                          # Next.js App Router（主目录）
 │   ├── layout.tsx               # 根布局组件
-│   ├── page.tsx                 # 首页（文生图）
+│   ├── page.tsx                 # 重定向到首页
 │   ├── loading.tsx              # 全局加载状态
 │   ├── error.tsx                # 全局错误页面
 │   ├── not-found.tsx            # 404 页面
+│   ├── globals.css              # 全局样式
 │   │
-│   ├── chat/                    # 聊天页面
-│   │   ├── page.tsx            # 聊天主页面
-│   │   └── layout.tsx          # 聊天布局（可选）
-│   │
-│   ├── knowledge/               # 知识库页面
-│   │   ├── page.tsx            # 知识库列表页
-│   │   └── [id]/               # 动态路由：风格详情
+│   ├── (main)/                  # 主路由组（共享布局）
+│   │   ├── layout.tsx           # 主布局（包含Header等）
+│   │   ├── page.tsx             # 首页（文生图主界面）
+│   │   ├── knowledge/           # 知识库页面
+│   │   │   └── page.tsx         # 知识库列表页
+│   │   │
+│   │   └── [id]/                # 动态路由：风格详情
 │   │       └── page.tsx
+│   │
+│   ├── chat/                    # 聊天页面（独立测试页面）
+│   │   └── page.tsx             # 聊天测试页面
 │   │
 │   └── api/                     # API Routes（如果需要）
 │       └── proxy/               # 代理路由（解决CORS）
 │           └── route.ts
 │
 ├── components/                  # React 组件目录
-│   ├── genui/                   # GenUI 组件系统
-│   │   ├── SmartCanvas.tsx      # 智能画布组件
-│   │   ├── AgentMessage.tsx    # Agent 消息组件
-│   │   ├── ActionPanel.tsx     # 操作面板组件
+│   ├── chat/                    # 聊天相关组件（已完成）
+│   │   ├── ChatInterface.tsx   # 聊天界面主组件
+│   │   ├── ThoughtLogItem.tsx  # 思考日志展示组件
+│   │   ├── EnhancedPromptView.tsx # 增强 Prompt 展示
 │   │   ├── ImageView.tsx       # 图片展示组件
+│   │   ├── TestGuideDialog.tsx # 测试指南对话框
+│   │   ├── WorkflowProgress.tsx # 工作流进度组件
+│   │   └── index.ts            # 导出
+│   │
+│   ├── knowledge/               # 知识库组件（已完成）
+│   │   ├── StyleCard.tsx       # 风格卡片组件
+│   │   ├── StyleList.tsx       # 风格列表组件
+│   │   ├── StyleForm.tsx       # 风格表单组件
+│   │   ├── StyleEditDialog.tsx # 风格编辑对话框
+│   │   ├── StyleActions.tsx    # 风格操作组件
+│   │   ├── BatchDeleteConfirm.tsx # 批量删除确认
+│   │   ├── DeleteConfirm.tsx   # 删除确认对话框
+│   │   ├── KnowledgeStats.tsx  # 知识库统计
+│   │   ├── StyleSearch.tsx     # 风格搜索组件
+│   │   └── index.ts            # 导出
+│   │
+│   ├── genui/                   # GenUI 组件系统（未来规划，未实现）
+│   │   ├── SmartCanvas.tsx      # 智能画布组件（蒙版绘制）
+│   │   ├── AgentMessage.tsx    # Agent 消息组件
+│   │   ├── ActionPanel.tsx     # 动态操作面板
 │   │   ├── GenUIRenderer.tsx   # GenUI 动态渲染器
 │   │   └── index.ts            # 导出
 │   │
 │   ├── ui/                      # 通用 UI 组件
-│   │   ├── Button.tsx          # 按钮组件
-│   │   ├── Input.tsx           # 输入框组件
-│   │   ├── Textarea.tsx        # 文本域组件
-│   │   ├── Card.tsx            # 卡片组件
-│   │   ├── Loading.tsx         # 加载状态组件
-│   │   ├── ErrorBoundary.tsx   # 错误边界
+│   │   ├── button.tsx          # 按钮组件
+│   │   ├── input.tsx           # 输入框组件
+│   │   ├── textarea.tsx        # 文本域组件
+│   │   ├── card.tsx            # 卡片组件
+│   │   ├── progress.tsx        # 进度条组件
+│   │   ├── scroll-area.tsx     # 滚动区域组件
 │   │   └── index.ts
 │   │
 │   ├── layout/                  # 布局组件
 │   │   ├── Header.tsx          # 顶部导航栏
-│   │   ├── Sidebar.tsx         # 侧边栏
-│   │   ├── Footer.tsx         # 页脚
-│   │   └── ChatContainer.tsx   # 聊天容器
-│   │
-│   ├── features/                # 功能组件
-│   │   ├── TextToImage/        # 文生图功能组件
-│   │   │   ├── TextInput.tsx   # 文本输入
-│   │   │   ├── ImageDisplay.tsx # 图片展示
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── KnowledgeBase/      # 知识库功能组件
-│   │   │   ├── StyleList.tsx   # 风格列表
-│   │   │   ├── StyleCard.tsx   # 风格卡片
-│   │   │   ├── StyleSearch.tsx # 搜索组件
-│   │   │   ├── StyleForm.tsx  # 添加风格表单
-│   │   │   └── index.ts
-│   │   │
-│   │   └── AgentWorkflow/      # Agent 工作流组件
-│   │       ├── ThoughtLog.tsx  # 思考日志展示
-│   │       ├── NodeStatus.tsx # 节点状态
-│   │       ├── ProgressBar.tsx # 进度条
-│   │       └── index.ts
+│   │   ├── Sidebar.tsx         # 侧边栏（规划中）
+│   │   ├── Footer.tsx         # 页脚（规划中）
+│   │   └── index.ts
 │   │
 │   └── shared/                  # 共享组件
-│       ├── VirtualList.tsx    # 虚拟滚动列表
-│       ├── ImageOptimized.tsx # 优化图片组件
 │       └── index.ts
 │
 ├── lib/                         # 工具库和业务逻辑
-│   ├── api/                     # API 客户端
+│   ├── api/                     # API 客户端（规划中）
 │   │   ├── client.ts           # 基础 HTTP 客户端
 │   │   ├── agent.ts            # Agent API 封装
 │   │   ├── knowledge.ts        # Knowledge API 封装
 │   │   └── types.ts            # API 响应类型
 │   │
-│   ├── sse/                     # SSE 客户端
+│   ├── sse/                     # SSE 客户端（已完成）
 │   │   ├── sse-client.ts       # SSE 连接管理
-│   │   ├── event-handler.ts    # 事件处理器
-│   │   ├── event-types.ts      # 事件类型定义
-│   │   └── reconnect.ts      # 重连逻辑
+│   │   ├── event-handler.ts    # 事件处理器工具
+│   │   └── index.ts            # 导出
 │   │
 │   ├── types/                   # TypeScript 类型定义
 │   │   ├── agent.ts            # Agent 相关类型
 │   │   ├── knowledge.ts        # Knowledge 相关类型
 │   │   ├── genui.ts            # GenUI 组件类型
-│   │   ├── sse.ts              # SSE 事件类型
+│   │   ├── sse.ts              # SSE 事件类型（已完成）
 │   │   └── index.ts            # 统一导出
 │   │
 │   ├── utils/                   # 工具函数
+│   │   ├── cn.ts               # 类名合并工具
 │   │   ├── format.ts           # 格式化函数
 │   │   ├── validation.ts       # 验证函数
 │   │   ├── date.ts             # 日期处理
 │   │   ├── image.ts            # 图片处理
 │   │   └── constants.ts        # 常量定义
-│   │
-│   └── hooks/                   # 自定义 Hooks（如果放在lib下）
-│       ├── useSSE.ts           # SSE 连接 Hook
-│       ├── useAgentChat.ts     # Agent 聊天 Hook
-│       ├── useKnowledge.ts    # 知识库 Hook
-│       └── useVirtualScroll.ts # 虚拟滚动 Hook
 │
 ├── hooks/                       # 自定义 Hooks（独立目录）
-│   ├── useSSE.ts               # SSE 连接管理
-│   ├── useAgentChat.ts         # Agent 聊天逻辑
-│   ├── useKnowledge.ts         # 知识库操作
-│   ├── useVirtualScroll.ts    # 虚拟滚动
-│   ├── useDebounce.ts         # 防抖
-│   └── useLocalStorage.ts     # 本地存储
+│   ├── useSSE.ts               # SSE 连接管理（已完成）
+│   ├── useAgentChat.ts         # Agent 聊天逻辑（已完成）
+│   ├── useKnowledge.ts         # 知识库操作（规划中）
+│   ├── useVirtualScroll.ts    # 虚拟滚动（规划中）
+│   ├── useDebounce.ts         # 防抖（规划中）
+│   └── useLocalStorage.ts     # 本地存储（规划中）
 │
 ├── stores/                      # 状态管理（Zustand）
 │   ├── session-store.ts        # 会话状态
@@ -165,27 +162,51 @@ main/web/
 
 **关键文件：**
 - `layout.tsx`: 根布局，包含全局样式、Provider 等
-- `page.tsx`: 首页，文生图主界面
-- `chat/page.tsx`: 聊天页面
-- `knowledge/page.tsx`: 知识库页面
+- `page.tsx`: 重定向到首页
+- `(main)/layout.tsx`: 主布局，包含 Header、Footer 等
+- `(main)/page.tsx`: 首页，文生图主界面
+- `(main)/knowledge/page.tsx`: 知识库页面
+- `chat/page.tsx`: 聊天测试页面（独立布局）
+
+**路由组说明：**
+- `(main)/`: 路由组，共享同一布局，不影响 URL 路径
+  - URL 路径为 `/`、`/knowledge` 等，不包含 `(main)`
+- `chat/`: 独立页面，有自己的测试布局
 
 **约定：**
 - 每个目录下的 `page.tsx` 是一个路由
 - `layout.tsx` 用于嵌套布局
 - `loading.tsx` 和 `error.tsx` 用于加载和错误状态
+- `(folder)` 格式表示路由组，不参与 URL 路径生成
 
 ### 3.2 components/ - React 组件
 
 **组织原则：**
-- 按功能模块划分（genui、ui、layout、features）
+- 按功能模块划分（chat、knowledge、genui、ui、layout）
 - 每个组件一个文件
 - 使用 `index.ts` 统一导出
 
 **子目录：**
-- `genui/`: GenUI 组件系统，动态渲染后端下发的组件
+- `chat/`: 聊天相关组件，已完成实现
+  - `ChatInterface.tsx`: 主聊天界面组件
+  - `ThoughtLogItem.tsx`: 思考日志展示
+  - `EnhancedPromptView.tsx`: 增强 Prompt 展示
+  - `ImageView.tsx`: 图片展示组件
+  - `TestGuideDialog.tsx`: 测试指南对话框
+  - `WorkflowProgress.tsx`: 工作流进度组件
+- `knowledge/`: 知识库组件，已完成实现
+  - `StyleCard.tsx`: 风格卡片组件
+  - `StyleList.tsx`: 风格列表组件
+  - `StyleForm.tsx`: 风格表单组件
+  - `StyleEditDialog.tsx`: 风格编辑对话框
+  - `StyleActions.tsx`: 风格操作组件
+  - `BatchDeleteConfirm.tsx`: 批量删除确认
+  - `DeleteConfirm.tsx`: 删除确认对话框
+  - `KnowledgeStats.tsx`: 知识库统计
+  - `StyleSearch.tsx`: 风格搜索组件
+- `genui/`: GenUI 组件系统（未来规划，未实现），动态渲染后端下发的组件
 - `ui/`: 通用 UI 组件，可复用的基础组件
 - `layout/`: 布局组件，页面结构
-- `features/`: 功能组件，业务逻辑相关
 - `shared/`: 共享组件，跨模块使用
 
 ### 3.3 lib/ - 工具库和业务逻辑
@@ -196,19 +217,28 @@ main/web/
 - 纯函数和工具类
 
 **子目录：**
-- `api/`: API 客户端封装
-- `sse/`: SSE 客户端实现
+- `api/`: API 客户端封装（规划中）
+- `sse/`: SSE 客户端实现（已完成）
+  - `sse-client.ts`: SSE 连接管理器
+  - `event-handler.ts`: 事件处理器工具
 - `types/`: TypeScript 类型定义
+  - `sse.ts`: SSE 事件类型定义（已完成）
 - `utils/`: 工具函数
+  - `cn.ts`: 类名合并工具（已完成）
 
 ### 3.4 hooks/ - 自定义 Hooks
 
 **作用：** 封装可复用的逻辑，提取组件中的状态和副作用。
 
-**示例：**
-- `useSSE.ts`: SSE 连接管理
-- `useAgentChat.ts`: Agent 聊天逻辑
+**已实现的 Hook：**
+- `useSSE.ts`: SSE 连接管理（已完成）
+- `useAgentChat.ts`: Agent 聊天逻辑（已完成）
+
+**规划中的 Hook：**
 - `useKnowledge.ts`: 知识库操作
+- `useVirtualScroll.ts`: 虚拟滚动
+- `useDebounce.ts`: 防抖
+- `useLocalStorage.ts`: 本地存储
 
 ### 3.5 stores/ - 状态管理
 
@@ -310,9 +340,14 @@ import { Button } from '../../../components/ui/Button'
 
 ```
 Page Component (app/page.tsx)
-  └── Feature Component (components/features/TextToImage/)
-      └── GenUI Component (components/genui/)
+  └── Chat Component (components/chat/)
       └── UI Component (components/ui/)
+
+Page Component (app/knowledge/page.tsx)
+  └── Knowledge Component (components/knowledge/)
+      └── UI Component (components/ui/)
+
+Future: GenUI Component (components/genui/)
 ```
 
 ## 7. 状态管理组织
@@ -342,3 +377,6 @@ export const useSessionStore = create((set) => ({
 - [架构设计](./ARCHITECTURE.md)
 - [技术栈详解](./TECHNOLOGY_STACK.md)
 - [开发最佳实践](../development/BEST_PRACTICES.md)
+- [SSE 实现总结](../sse-implementation-summary.md) - SSE 客户端和聊天界面实现
+- [API 集成指南](../api/API_INTEGRATION.md)
+- [Agent 工作流前端实现](../features/AGENT_WORKFLOW.md)

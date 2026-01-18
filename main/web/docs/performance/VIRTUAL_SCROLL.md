@@ -156,7 +156,7 @@ export function MessageList({ messages, height = 600 }: MessageListProps) {
 ### 5.2 知识库风格列表
 
 ```typescript
-// components/features/KnowledgeBase/StyleList.tsx
+// components/knowledge/StyleList.tsx
 'use client';
 
 import { FixedSizeGrid } from 'react-window';

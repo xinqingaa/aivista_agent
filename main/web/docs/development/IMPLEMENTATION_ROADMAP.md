@@ -153,7 +153,7 @@ lib/types/
 app/knowledge/
 └── page.tsx
 
-components/features/KnowledgeBase/
+components/knowledge/
 ├── StyleList.tsx
 ├── StyleCard.tsx
 ├── StyleSearch.tsx

@@ -116,7 +116,18 @@ export async function getAgentInfo(): Promise<AgentInfo> {
 
 ### 3.2 聊天接口（SSE）
 
-聊天接口使用 SSE 流式响应，详见 [SSE 客户端实现](./SSE_CLIENT.md)。
+聊天接口使用 SSE 流式响应。
+
+**已实现** ✅：
+- SSE 客户端实现（`lib/sse/sse-client.ts`）
+- SSE 事件处理（`lib/sse/event-handler.ts`）
+- SSE Hook（`hooks/useSSE.ts`、`hooks/useAgentChat.ts`）
+- 聊天界面组件（`components/chat/`）
+
+**相关文档**：
+- [SSE 客户端实现](./SSE_CLIENT.md) - SSE 客户端详细说明
+- [SSE 实现总结](../sse-implementation-summary.md) - 完整实现记录
+- [后端 SSE 设计](../../../main/server/docs/workflow/SSE_STREAMING_DESIGN.md) - 后端 SSE 接口设计
 
 ## 4. Knowledge API 集成
 
@@ -461,7 +472,7 @@ export * from './sse';
 ### 9.1 在组件中使用
 
 ```typescript
-// components/features/KnowledgeBase/StyleList.tsx
+// components/knowledge/StyleList.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
