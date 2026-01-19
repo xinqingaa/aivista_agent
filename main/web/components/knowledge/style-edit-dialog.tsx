@@ -20,7 +20,7 @@ import {
   Layers
 } from 'lucide-react';
 import type { StyleData } from '@/lib/types/knowledge';
-import { StyleForm } from './StyleForm';
+import { StyleForm } from './style-form';
 import { cn } from '@/lib/utils';
 
 interface StyleEditDialogProps {

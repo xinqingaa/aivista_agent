@@ -6,7 +6,6 @@
 
 'use client';
 
-import { ThoughtLogEvent } from '@/lib/types/sse';
 import { Badge } from '@/components/ui/badge';
 import { 
   CheckCircle2, 
@@ -18,15 +17,9 @@ import {
   Terminal 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThoughtLogItemProps } from '@/lib/types/genui';
 
-interface ThoughtLogItemProps {
-  log: ThoughtLogEvent;
-  isLast?: boolean;
-}
-
-export function ThoughtLogItem({ log, isLast }: ThoughtLogItemProps) {
-  const { node, message, progress, metadata } = log.data;
-
+export function ThoughtLogItem({ node, message, progress, metadata, timestamp, isLast }: ThoughtLogItemProps) {
   // 节点配置 - 统一使用紫色/蓝色作为主色调，灰色作为辅助
   const nodeConfig = {
     planner: {
@@ -91,7 +84,7 @@ export function ThoughtLogItem({ log, isLast }: ThoughtLogItemProps) {
             )}
           </div>
           <span className="text-xs text-muted-foreground/50 tabular-nums">
-            {new Date(log.timestamp).toLocaleTimeString()}
+            {timestamp ? new Date(timestamp).toLocaleTimeString() : ''}
           </span>
         </div>
 

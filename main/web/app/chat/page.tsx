@@ -6,8 +6,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ChatInterface } from '@/components/chat/ChatInterface';
-import { TestGuideDialog } from '@/components/chat/TestGuideDialog';
+import { ChatInterface } from '@/components/chat/chat-interface';
+import { TestGuideDialog } from '@/components/chat/test-guide-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Home } from 'lucide-react';

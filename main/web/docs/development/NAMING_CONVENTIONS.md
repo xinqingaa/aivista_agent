@@ -16,30 +16,28 @@
 
 项目采用以下命名风格：
 
-- **kebab-case（小驼峰）**: 用于普通文件、工具文件、Hook 文件
-  - 示例: `use-debounce.ts`, `api-client.ts`, `color-scheme.md`
-- **PascalCase（大驼峰）**: 用于 React 组件文件
-  - 示例: `Header.tsx`, `StyleCard.tsx`, `ThemeToggle.tsx`
+- **kebab-case（短横线连接小写）**: 用于所有代码文件（组件、工具、Hook、类型等）
+  - 示例: `chat-interface.tsx`, `use-debounce.ts`, `api-client.ts`
 
 ## 3. 文件类型命名规范
 
 ### 3.1 React 组件文件
 
-**规范**: 使用 PascalCase，文件名与组件名一致
+**规范**: 使用 kebab-case，文件名与组件名语义一致
 
 **示例**:
 ```
 components/
   layout/
-    Header.tsx          # Header 组件
-    Footer.tsx          # Footer 组件
+    header.tsx          # Header 组件
+    footer.tsx          # Footer 组件
   ui/
-    Button.tsx          # Button 组件
-    Card.tsx             # Card 组件
+    button.tsx          # Button 组件
+    card.tsx            # Card 组件
   features/
-    KnowledgeBase/
-      StyleCard.tsx      # StyleCard 组件
-      StyleList.tsx      # StyleList 组件
+    knowledge-base/
+      style-card.tsx    # StyleCard 组件
+      style-list.tsx    # StyleList 组件
 ```
 
 **规则**:
@@ -187,7 +185,7 @@ lib/
   function handleClick() {}
   ```
 
-- **React 组件**: 使用 PascalCase
+- **React 组件**: 使用 PascalCase（组件名本身），但文件名使用 kebab-case
   ```typescript
   function Header() {}
   function StyleCard() {}
@@ -211,9 +209,9 @@ hooks/
 
 components/
   layout/
-    Header.tsx          ✅ 正确
+    header.tsx          ✅ 正确
   ui/
-    Button.tsx          ✅ 正确
+    button.tsx          ✅ 正确
 ```
 
 ### 6.2 错误示例
@@ -224,9 +222,9 @@ hooks/
   UseDebounce.ts        ❌ 错误（Hook 文件不应使用 PascalCase）
   use_debounce.ts       ❌ 错误（不应使用下划线）
 
-components/
-  header.tsx            ❌ 错误（组件文件应使用 PascalCase）
-  button.tsx            ❌ 错误（组件文件应使用 PascalCase）
+  components/
+    Header.tsx            ❌ 错误（组件文件应使用 kebab-case）
+    Button.tsx            ❌ 错误（组件文件应使用 kebab-case）
 ```
 
 ## 7. 迁移指南
@@ -267,7 +265,7 @@ components/
 
 ## 9. 总结
 
-- **组件文件**: PascalCase（如 `Header.tsx`）
+- **组件文件**: kebab-case（如 `header.tsx`、`style-card.tsx`）
 - **Hook 文件**: kebab-case，以 `use-` 开头（如 `use-debounce.ts`）
 - **工具文件**: kebab-case（如 `api-client.ts`）
 - **类型文件**: kebab-case（如 `knowledge.ts`）

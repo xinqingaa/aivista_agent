@@ -11,13 +11,9 @@ import { EnhancedPromptEvent } from '@/lib/types/sse';
 import { Search, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { EnhancedPromptViewProps } from '@/lib/types/genui';
 
-interface EnhancedPromptViewProps {
-  event: EnhancedPromptEvent;
-}
-
-export function EnhancedPromptView({ event }: EnhancedPromptViewProps) {
-  const { original, retrieved, final } = event.data;
+export function EnhancedPromptView({ original, retrieved, final }: EnhancedPromptViewProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (

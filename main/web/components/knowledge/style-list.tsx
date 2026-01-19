@@ -1,6 +1,6 @@
 'use client';
 
-import { StyleCard } from './StyleCard';
+import { StyleCard } from './style-card';
 import { Card, CardContent } from '@/components/ui/card';
 import type { StyleData } from '@/lib/types/knowledge';
 

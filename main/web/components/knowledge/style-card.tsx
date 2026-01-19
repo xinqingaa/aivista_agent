@@ -116,7 +116,7 @@ export function StyleCard({
         {/* Prompt 区域 */}
         <div className="relative rounded-xl bg-muted/30 p-3 border border-muted/10 group-hover:bg-muted/50 transition-all duration-300 group-hover:border-primary/10">
           <p className="text-[13px] text-muted-foreground line-clamp-3 italic leading-relaxed font-serif">
-            "{style.prompt}"
+            &ldquo;{style.prompt}&rdquo;
           </p>
           <div className="absolute bottom-1 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
              <MoreHorizontal className="h-3 w-3 text-muted-foreground/40" />

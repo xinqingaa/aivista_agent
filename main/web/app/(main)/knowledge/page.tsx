@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   KnowledgeStats,
   StyleSearch,
@@ -53,7 +53,7 @@ export default function KnowledgePage() {
   const [showSingleDeleteConfirm, setShowSingleDeleteConfirm] = useState(false);
   const [styleToDelete, setStyleToDelete] = useState<StyleData | null>(null);
 
-  const loadStyles = async () => {
+  const loadStyles = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getStyles();
@@ -68,11 +68,11 @@ export default function KnowledgePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     loadStyles();
-  }, []);
+  }, [loadStyles]);
 
   const filteredStyles = useMemo(() => {
     if (!searchQuery.trim()) return styles;

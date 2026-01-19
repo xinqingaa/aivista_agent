@@ -9,27 +9,16 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Image as ImageIcon, Download, ExternalLink, Loader2 } from 'lucide-react';
+import { ImageViewProps } from '@/lib/types/genui';
 
-interface ImageViewProps {
-  url: string;
-  prompt?: string;
-  alt?: string;
-  actions?: Array<{
-    id: string;
-    label: string;
-    type: 'button' | 'link';
-    buttonType?: 'primary' | 'secondary' | 'outline';
-  }>;
-}
-
-export function ImageView({ url, prompt, alt = 'Generated Image', actions }: ImageViewProps) {
+export function ImageView({ imageUrl, prompt, alt = 'Generated Image', actions, onLoad, onError }: ImageViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const handleDownload = () => {
     // 创建一个临时链接来下载图片
     const link = document.createElement('a');
-    link.href = url;
+    link.href = imageUrl;
     link.download = `aivista-${Date.now()}.png`;
     link.target = '_blank';
     document.body.appendChild(link);
@@ -40,11 +29,13 @@ export function ImageView({ url, prompt, alt = 'Generated Image', actions }: Ima
   const handleLoad = () => {
     setIsLoading(false);
     setError(null);
+    onLoad?.();
   };
 
   const handleError = () => {
     setIsLoading(false);
     setError('图片加载失败');
+    onError?.(new Error('图片加载失败'));
   };
 
   const handleAction = (actionId: string) => {
@@ -79,11 +70,11 @@ export function ImageView({ url, prompt, alt = 'Generated Image', actions }: Ima
           {/* 图片 */}
           {!error && (
             <img
-              src={url}
+              src={imageUrl}
               alt={alt}
               onLoad={handleLoad}
               onError={handleError}
-              className={`w-full h-auto max-h-[500px] object-contain transition-opacity ${
+              className={` max-w-full max-h-[500px] object-contain transition-opacity ${
                 isLoading ? 'opacity-0' : 'opacity-100'
               }`}
             />
@@ -100,7 +91,7 @@ export function ImageView({ url, prompt, alt = 'Generated Image', actions }: Ima
                   {prompt}
                 </p>
               )}
-              
+
               {/* 右侧：操作按钮 */}
               <div className="flex gap-2 flex-shrink-0">
                 {actions && actions.length > 0 ? (
@@ -128,7 +119,7 @@ export function ImageView({ url, prompt, alt = 'Generated Image', actions }: Ima
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(url, '_blank')}
+                      onClick={() => window.open(imageUrl, '_blank')}
                       className="gap-1"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />

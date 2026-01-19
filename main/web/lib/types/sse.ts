@@ -63,10 +63,11 @@ export interface EnhancedPromptEventData {
 
 /**
  * gen_ui_component 事件数据
+ * 使用 GenUI 类型系统，支持所有组件类型
  */
 export interface GenUIComponentEventData {
   id?: string;
-  widgetType: 'SmartCanvas' | 'ImageView' | 'AgentMessage' | 'ActionPanel';
+  widgetType: 'SmartCanvas' | 'ImageView' | 'AgentMessage' | 'ActionPanel' | 'ThoughtLogItem' | 'EnhancedPromptView';
   props: Record<string, any>;
   updateMode?: 'append' | 'replace' | 'update';
   targetId?: string;
