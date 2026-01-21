@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  isString,
   IsString,
   validateSync,
 } from 'class-validator';
@@ -112,8 +113,9 @@ class EnvironmentVariables {
   CRITIC_USE_LLM?: boolean;
 
   // 图片生成服务配置
+  @IsString()
   @IsOptional()
-  USE_REAL_IMAGE_SERVICE?: boolean;
+  USE_REAL_IMAGE_SERVICE?: string;
 
   // DashScope API 配置
   @IsString()

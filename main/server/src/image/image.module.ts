@@ -26,10 +26,8 @@ import { IImageService } from './interfaces/image-service.interface';
         aliyunImageService: AliyunImageService,
         mockImageService: MockImageService,
       ): IImageService => {
-        const useRealService =
-          configService.get<boolean>('USE_REAL_IMAGE_SERVICE') ?? false;
-
-        if (useRealService) {
+        const useRealServiceStr = configService.get<string>('USE_REAL_IMAGE_SERVICE') ?? 'false';
+        if (useRealServiceStr.toLowerCase() === 'true') {
           return aliyunImageService;
         } else {
           return mockImageService;

@@ -19,6 +19,29 @@ NC='\033[0m' # No Color
 # 存储子进程 PID
 PIDS=()
 
+# 统一的依赖安装函数：优先 pnpm
+install_dependencies() {
+    # 检查有无 package.json
+    if [ ! -f "package.json" ]; then
+        echo -e "${RED}错误: 未找到 package.json${NC}"
+        cd ../..
+        return 1
+    fi
+
+    # 检查有无依赖
+    if [ ! -d "node_modules" ]; then
+        echo -e "${YELLOW}检测到未安装依赖，正在安装...${NC}"
+        if command -v pnpm &> /dev/null; then
+            echo -e "${BLUE}使用 pnpm 安装中...${NC}"
+            pnpm install
+        else
+            echo -e "${YELLOW}未找到 pnpm，回退使用 npm 安装...${NC}"
+            npm install
+        fi
+    fi
+}
+
+
 # 清理函数：退出时杀死所有子进程
 cleanup() {
     echo -e "\n${YELLOW}正在停止服务...${NC}"
@@ -39,12 +62,9 @@ trap cleanup SIGINT SIGTERM EXIT
 start_backend() {
     echo -e "${BLUE}启动后端服务...${NC}"
     cd main/server
-    
-    # 检查 node_modules 是否存在
-    if [ ! -d "node_modules" ]; then
-        echo -e "${YELLOW}检测到未安装依赖，正在安装...${NC}"
-        npm install
-    fi
+
+    # 检查依赖
+    install_dependencies
     
     # 检查 .env 文件是否存在
     if [ ! -f ".env" ]; then
@@ -104,23 +124,8 @@ start_web() {
     echo -e "${BLUE}启动 Web 服务...${NC}"
     cd main/web
     
-    # 检查 package.json
-    if [ ! -f "package.json" ]; then
-        echo -e "${RED}错误: 未找到 package.json${NC}"
-        cd ../..
-        return 1
-    fi
-    
-    # 检查并安装依赖
-    if [ ! -d "node_modules" ]; then
-        echo -e "${YELLOW}检测到未安装依赖，正在安装...${NC}"
-        # 优先使用 pnpm
-        if command -v pnpm &> /dev/null; then
-            pnpm install
-        else
-            npm install
-        fi
-    fi
+    # 检查依赖
+    install_dependencies
     
     # 检查 .env.local（可选）
     if [ ! -f ".env.local" ]; then
