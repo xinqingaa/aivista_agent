@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { LlmModule } from './llm/llm.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { AgentModule } from './agent/agent.module';
+import { ConversationModule } from './conversation/conversation.module';
+import { databaseConfig } from './config/database.config';
 import { validateEnvironment } from './config/configuration';
 
 /**
@@ -24,9 +26,11 @@ import { validateEnvironment } from './config/configuration';
       envFilePath: '.env', // 环境变量文件路径
       validate: validateEnvironment, // 验证环境变量格式和必填项
     }),
+    databaseConfig, // 数据库配置（TypeORM）
     LlmModule, // LLM 服务模块
     KnowledgeModule, // 知识库模块
     AgentModule, // Agent 工作流模块
+    ConversationModule, // 会话管理模块
   ],
 })
 export class AppModule {}

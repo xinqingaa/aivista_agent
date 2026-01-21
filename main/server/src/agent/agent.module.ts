@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { LlmModule } from '../llm/llm.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { ImageModule } from '../image/image.module';
+import { ConversationModule } from '../conversation/conversation.module';
 import { AgentController } from './agent.controller';
 import { AgentService } from './agent.service';
 import { PlannerNode } from './nodes/planner.node';
@@ -23,7 +24,7 @@ import { createAgentGraph } from './graph/agent.graph';
  * - AGENT_GRAPH: LangGraph 状态图实例
  */
 @Module({
-  imports: [LlmModule, KnowledgeModule, ImageModule],
+  imports: [LlmModule, KnowledgeModule, ImageModule, ConversationModule],
   controllers: [AgentController],
   providers: [
     AgentService,
@@ -44,6 +45,7 @@ import { createAgentGraph } from './graph/agent.graph';
       inject: [PlannerNode, RagNode, ExecutorNode, CriticNode],
     },
   ],
+  exports: [AgentService], // 导出 AgentService 供其他模块使用
 })
 export class AgentModule {}
 

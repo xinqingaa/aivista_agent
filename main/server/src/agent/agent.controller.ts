@@ -1,16 +1,20 @@
 import { Controller, Get, Post, Body, Res, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { IsString, IsOptional, ValidateNested, IsObject, IsEnum } from 'class-validator';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiBody, 
-  ApiProperty, 
-  ApiPropertyOptional 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiProperty,
+  ApiPropertyOptional
 } from '@nestjs/swagger';
 import { AgentService } from './agent.service';
 import { AgentState } from './interfaces/agent-state.interface';
+import { ConversationService } from '../conversation/conversation.service';
+import { MessageService } from '../conversation/message.service';
+import { GenUIComponentService } from '../conversation/genui-component.service';
+import { RAGContextService } from '../conversation/rag-context.service';
 
 /**
  * 蒙版数据 DTO
@@ -44,20 +48,28 @@ class ChatRequestDto {
   text: string;
 
   @ApiPropertyOptional({
+    description: '会话 ID，用于多轮对话（优先使用 conversationId）',
+    example: 'conv_1737451200000_a3f8k2m9',
+  })
+  @IsOptional()
+  @IsString()
+  conversationId?: string;
+
+  @ApiPropertyOptional({
+    description: '会话 ID（已弃用，请使用 conversationId，保留用于向后兼容）',
+    example: 'session_1234567890',
+  })
+  @IsOptional()
+  @IsString()
+  sessionId?: string;
+
+  @ApiPropertyOptional({
     description: '蒙版数据，用于局部重绘（inpainting）',
     type: MaskDataDto,
   })
   @IsOptional()
   @IsObject()
   maskData?: MaskDataDto;
-
-  @ApiPropertyOptional({
-    description: '会话 ID，用于多轮对话',
-    example: 'session_1234567890',
-  })
-  @IsOptional()
-  @IsString()
-  sessionId?: string;
 
   @ApiPropertyOptional({
     description: '首选图片生成模型（可选），如果不指定则使用环境变量配置的默认模型',
@@ -80,7 +92,13 @@ class ChatRequestDto {
 export class AgentController {
   private readonly logger = new Logger(AgentController.name);
 
-  constructor(private readonly agentService: AgentService) {}
+  constructor(
+    private readonly agentService: AgentService,
+    private readonly conversationService: ConversationService,
+    private readonly messageService: MessageService,
+    private readonly genuiComponentService: GenUIComponentService,
+    private readonly ragContextService: RAGContextService,
+  ) {}
 
   /**
    * GET /api/agent - API 使用说明和健康检查
@@ -251,13 +269,55 @@ data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1
       `AgentController: Received request - text: "${request.text.substring(0, 50)}${request.text.length > 50 ? '...' : ''}", preferredModel: ${request.preferredModel || 'not specified'}, hasMaskData: ${!!request.maskData}`,
     );
 
+    // === 新增：会话管理 ===
+    // 优先使用 conversationId，兼容 sessionId
+    const requestedConversationId = request.conversationId || request.sessionId;
+    let conversation;
+
+    if (requestedConversationId) {
+      // 尝试获取现有会话
+      try {
+        conversation = await this.conversationService.findById(requestedConversationId);
+
+        // 记录迁移警告（如果使用旧的 sessionId）
+        if (request.sessionId && !request.conversationId) {
+          this.logger.warn(`Using deprecated sessionId: ${request.sessionId}, please migrate to conversationId`);
+        }
+      } catch (error) {
+        this.logger.error(`Conversation not found: ${requestedConversationId}`);
+        return response.status(404).json({
+          error: 'Conversation not found',
+          conversationId: requestedConversationId,
+        });
+      }
+    } else {
+      // 创建新会话
+      conversation = await this.conversationService.create({
+        title: request.text.slice(0, 50) + (request.text.length > 50 ? '...' : ''),
+        status: 'active',
+      });
+      this.logger.log(`Created new conversation: ${conversation.id}`);
+    }
+
+    // === 新增：保存用户消息 ===
+    const userMessage = await this.messageService.create({
+      conversationId: conversation.id,
+      role: 'user',
+      content: request.text,
+      metadata: {
+        maskData: request.maskData,
+        preferredModel: request.preferredModel,
+      },
+    });
+
     // 设置 SSE 响应头
     response.setHeader('Content-Type', 'text/event-stream');
     response.setHeader('Cache-Control', 'no-cache');
     response.setHeader('Connection', 'keep-alive');
     response.setHeader('X-Accel-Buffering', 'no');
 
-    const sessionId = request.sessionId || `session_${Date.now()}`;
+    // === 修改：使用 conversationId ===
+    const sessionId = conversation.id;
 
     // 构建初始状态
     const initialState: AgentState = {
@@ -273,29 +333,110 @@ data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1
       metadata: {
         retryCount: 0,
         startTime: Date.now(),
+        conversationId: conversation.id, // 新增：记录 conversationId
       },
     };
 
+    // 用于存储生成的组件
+    const genUIComponents = [];
+
     try {
-      // 发送连接确认
+      // 发送连接确认（返回 conversationId）
       response.write(`event: connection\n`);
-      response.write(`data: ${JSON.stringify({ status: 'connected', sessionId })}\n\n`);
+      response.write(`data: ${JSON.stringify({
+        status: 'connected',
+        sessionId,
+        conversationId: conversation.id, // 新增：返回 conversationId 给前端
+      })}\n\n`);
 
       // 执行工作流并流式推送
       for await (const event of this.agentService.executeWorkflow(initialState)) {
         // 检查客户端是否断开连接
         if (response.destroyed) {
-          this.logger.log('Client disconnected');
+          this.logger.warn(`Client disconnected, conversationId: ${conversation.id}`);
           break;
         }
 
-        // 推送事件
+        // === 新增：根据事件类型保存数据到数据库 ===
+        if (event.type === 'thought_log') {
+          // 保存思考日志为 GenUI 组件
+          const component = await this.genuiComponentService.create({
+            conversationId: conversation.id,
+            messageId: userMessage.id,
+            widgetType: 'ThoughtLogItem',
+            props: {
+              node: event.data.node,
+              message: event.data.message,
+              progress: event.data.progress,
+              metadata: event.data.metadata,
+              timestamp: Date.now(),
+            },
+          });
+          genUIComponents.push(component);
+        }
+
+        if (event.type === 'enhanced_prompt') {
+          // 保存 RAG 检索上下文
+          await this.ragContextService.create({
+            conversationId: conversation.id,
+            messageId: userMessage.id,
+            originalPrompt: event.data.original || '',
+            retrievedContext: event.data.retrieved || {},
+            finalPrompt: event.data.final || '',
+          });
+
+          // 同时保存为 GenUI 组件（用于前端展示）
+          const component = await this.genuiComponentService.create({
+            conversationId: conversation.id,
+            messageId: userMessage.id,
+            widgetType: 'EnhancedPromptView',
+            props: event.data,
+          });
+          genUIComponents.push(component);
+        }
+
+        if (event.type === 'gen_ui_component') {
+          // 保存 GenUI 组件
+          const component = await this.genuiComponentService.create({
+            conversationId: conversation.id,
+            messageId: userMessage.id,
+            widgetType: event.data.widgetType,
+            props: event.data.props,
+            updateMode: event.data.updateMode,
+            targetId: event.data.targetId,
+          });
+          genUIComponents.push(component);
+        }
+
+        // 推送事件到前端
         response.write(`event: ${event.type}\n`);
         response.write(`data: ${JSON.stringify(event)}\n\n`);
       }
+
+      // === 新增：工作流完成后保存助手响应 ===
+      const lastComponent = genUIComponents[genUIComponents.length - 1];
+      if (lastComponent?.widgetType === 'ImageView') {
+        await this.messageService.create({
+          conversationId: conversation.id,
+          role: 'assistant',
+          content: 'Image generated',
+          metadata: {
+            imageUrl: lastComponent.props?.imageUrl,
+            componentIds: genUIComponents.map(c => c.id),
+          },
+        });
+      }
+
+      // 更新会话时间戳
+      await this.conversationService.update(conversation.id, {
+        updatedAt: Date.now(),
+      });
+
+      this.logger.log(`Workflow completed, conversationId: ${conversation.id}, components: ${genUIComponents.length}`);
+
     } catch (error) {
       this.logger.error(`Stream error: ${error.message}`);
-      
+
       if (!response.destroyed) {
         response.write(`event: error\n`);
         response.write(`data: ${JSON.stringify({

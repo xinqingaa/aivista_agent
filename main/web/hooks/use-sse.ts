@@ -237,7 +237,13 @@ export interface UseAgentChatOptions {
 
 interface UseAgentChatReturn extends UseSSEReturn {
   // 发送消息
-  sendMessage: (text: string, maskData?: any) => void;
+  sendMessage: (
+    text: string,
+    options?: {
+      conversationId?: string;
+      maskData?: any;
+    }
+  ) => void;
 }
 
 export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatReturn {
@@ -319,10 +325,17 @@ export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatRet
   });
 
   // 发送消息方法
-  const sendMessage = useCallback((text: string, maskData?: any) => {
+  const sendMessage = useCallback((
+    text: string,
+    options?: {
+      conversationId?: string;
+      maskData?: any;
+    }
+  ) => {
     const body = {
       text,
-      ...(maskData && { maskData }),
+      ...(options?.conversationId && { conversationId: options.conversationId }),
+      ...(options?.maskData && { maskData: options.maskData }),
     };
 
     if (callbacksRef.current.onChatStart) {

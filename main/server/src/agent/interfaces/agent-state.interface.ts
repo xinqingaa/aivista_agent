@@ -62,6 +62,7 @@ export interface AgentState {
     currentNode?: string;
     retryCount?: number;
     startTime?: number;
+    conversationId?: string; // 新增：conversationId
   };
   error?: {
     code: string;

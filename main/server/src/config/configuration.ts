@@ -6,6 +6,7 @@ import {
   IsOptional,
   isString,
   IsString,
+  IsBoolean,
   validateSync,
 } from 'class-validator';
 
@@ -142,6 +143,49 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   ALIYUN_IMAGE_WATERMARK?: string;
+
+  // ============================================
+  // 数据库配置
+  // ============================================
+  @IsString()
+  @IsOptional()
+  DB_TYPE?: string;
+
+  @IsString()
+  @IsOptional()
+  DB_HOST?: string;
+
+  @IsNumber()
+  @IsOptional()
+  DB_PORT?: number;
+
+  @IsString()
+  @IsOptional()
+  DB_USER?: string;
+
+  @IsString()
+  @IsOptional()
+  DB_PASSWORD?: string;
+
+  @IsString()
+  @IsOptional()
+  DB_NAME?: string;
+
+  @IsString()
+  @IsOptional()
+  DB_DATABASE?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  DB_SYNCHRONIZE?: boolean;
+
+  @IsString()
+  @IsOptional()
+  DB_SSL?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  DB_LOGGING?: boolean;
 }
 
 export function validateEnvironment(config: Record<string, unknown>) {
@@ -177,6 +221,29 @@ export function validateEnvironment(config: Record<string, unknown>) {
   } else if (embeddingProvider === 'openai' || embeddingProvider === 'deepseek') {
     if (!validatedConfig.OPENAI_API_KEY && !validatedConfig.DEEPSEEK_API_KEY) {
       throw new Error('OPENAI_API_KEY or DEEPSEEK_API_KEY is required when EMBEDDING_PROVIDER=openai/deepseek');
+    }
+  }
+
+  // 验证数据库配置
+  const dbType = validatedConfig.DB_TYPE || 'sqlite';
+  if (dbType === 'postgres') {
+    if (!validatedConfig.DB_HOST) {
+      throw new Error('DB_HOST is required when DB_TYPE=postgres');
+    }
+    if (!validatedConfig.DB_USER) {
+      throw new Error('DB_USER is required when DB_TYPE=postgres');
+    }
+    if (!validatedConfig.DB_PASSWORD) {
+      throw new Error('DB_PASSWORD is required when DB_TYPE=postgres');
+    }
+    if (!validatedConfig.DB_NAME) {
+      throw new Error('DB_NAME is required when DB_TYPE=postgres');
+    }
+  } else if (dbType === 'sqlite') {
+    // 为 SQLite 提供默认值
+    if (!validatedConfig.DB_DATABASE) {
+      validatedConfig.DB_DATABASE = './data/aivista.db' as any;
+      console.warn('[Config] DB_DATABASE not set, using default: ./data/aivista.db');
     }
   }
 

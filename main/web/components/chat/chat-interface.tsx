@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2, Sparkles, ArrowDown } from 'lucide-react';
 import { useAgentChat } from '@/hooks/use-sse';
+import { useConversationStore } from '@/stores/conversation-store';
 import {
   ThoughtLogEventData,
   EnhancedPromptEventData,
@@ -150,68 +151,87 @@ export function ChatInterface({
   placeholder = '输入你的创意，让 AI 来实现...',
   onChatEnd,
 }: ChatInterfaceProps) {
-  // 状态管理
-  const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: number }>>([]);
+  // === Store 集成 ===
+  const {
+    getActiveConversation,
+    activeConversationId,
+    createConversation,
+    addMessage,
+    addGenUIComponent: addGenUIComponentToStore,
+    updateGenUIComponent: updateGenUIComponentInStore,
+    clearGenUIComponents,
+    updateConversation,
+  } = useConversationStore();
+
+  // 获取当前活跃会话
+  const activeConversation = getActiveConversation();
+  
+  // 使用 Store 中的数据
+  const messages = activeConversation?.messages || [];
+  const genUIComponents = activeConversation?.genUIComponents || [];
+
+  // 本地 UI 状态
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAutoScroll, setIsAutoScroll] = useState(true);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  
-  // GenUI 组件状态（统一管理所有动态组件）
-  const [genUIComponents, setGenUIComponents] = useState<GenUIComponent[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // 初始化：如果没有活跃对话，创建一个
+  useEffect(() => {
+    if (!activeConversationId) {
+      createConversation('新对话');
+    }
+  }, [activeConversationId, createConversation]);
+
   // 添加 GenUI 组件的回调
-  const addGenUIComponent = useCallback((component: GenUIComponent) => {
-    setGenUIComponents(prev => [...prev, component]);
-  }, []);
+  const addGenUIComponent = useCallback(async (component: GenUIComponent) => {
+    if (activeConversationId) {
+      await addGenUIComponentToStore(activeConversationId, component);
+    }
+  }, [activeConversationId, addGenUIComponentToStore]);
 
   // 更新 GenUI 组件的回调（根据 updateMode）
-  const updateGenUIComponent = useCallback((component: GenUIComponent) => {
-    setGenUIComponents(prev => {
-      const updateMode = component.updateMode || 'append';
-      
-      switch (updateMode) {
-        case 'replace':
-          // 替换同 ID 的组件
-          if (component.id) {
-            const index = prev.findIndex(c => c.id === component.id);
-            if (index !== -1) {
-              const newComponents = [...prev];
-              newComponents[index] = component;
-              return newComponents;
-            }
-          }
-          return [...prev, component];
-          
-        case 'update':
-          // 更新同 ID 组件的属性
-          if (component.id) {
-            return prev.map(c => 
-              c.id === component.id 
-                ? { ...c, props: { ...c.props, ...component.props } }
-                : c
-            );
-          }
-          return [...prev, component];
-          
-        case 'append':
-        default:
-          return [...prev, component];
-      }
-    });
-  }, []);
+  const updateGenUIComponent = useCallback(async (component: GenUIComponent) => {
+    if (!activeConversationId) return;
+
+    const updateMode = component.updateMode || 'append';
+    
+    switch (updateMode) {
+      case 'replace':
+      case 'update':
+        if (component.id) {
+          await updateGenUIComponentInStore(activeConversationId, component.id, component);
+        } else {
+          await addGenUIComponentToStore(activeConversationId, component);
+        }
+        break;
+      case 'append':
+      default:
+        await addGenUIComponentToStore(activeConversationId, component);
+    }
+  }, [activeConversationId, addGenUIComponentToStore, updateGenUIComponentInStore]);
 
   const { sendMessage } = useAgentChat({
-    onChatStart: () => {
+    onChatStart: async () => {
       setIsProcessing(true);
-      setGenUIComponents([]); // 清空组件状态
+      
+      // 确保有活跃对话
+      let currentId = activeConversationId;
+      if (!currentId) {
+        currentId = await createConversation('新对话');
+      }
+
+      // 清空当前对话的 GenUI 组件（保留历史消息）
+      if (currentId) {
+        await clearGenUIComponents(currentId);
+      }
     },
-    onThoughtLog: (data: ThoughtLogEventData) => {
-      // 将 thought_log 事件转换为 ThoughtLogItem 组件
-      addGenUIComponent({
+    onThoughtLog: async (data: ThoughtLogEventData) => {
+      // 将 thought_log 事件转换为 ThoughtLogItem 组件并保存到 Store
+      await addGenUIComponent({
         id: generateComponentId('thought'),
         widgetType: 'ThoughtLogItem',
         props: {
@@ -223,9 +243,9 @@ export function ChatInterface({
         },
       });
     },
-    onEnhancedPrompt: (data: EnhancedPromptEventData) => {
-      // 将 enhanced_prompt 事件转换为 EnhancedPromptView 组件
-      addGenUIComponent({
+    onEnhancedPrompt: async (data: EnhancedPromptEventData) => {
+      // 将 enhanced_prompt 事件转换为 EnhancedPromptView 组件并保存到 Store
+      await addGenUIComponent({
         id: generateComponentId('enhanced'),
         widgetType: 'EnhancedPromptView',
         props: {
@@ -235,9 +255,8 @@ export function ChatInterface({
         },
       });
     },
-    onGenUIComponent: (data: GenUIComponentEventData) => {
-      // 直接添加 GenUI 组件
-      // 使用类型断言，因为 SSE 类型定义中 props 是 Record<string, any>
+    onGenUIComponent: async (data: GenUIComponentEventData) => {
+      // 直接添加 GenUI 组件到 Store
       const component: GenUIComponent = {
         id: data.id || generateComponentId(data.widgetType.toLowerCase()),
         widgetType: data.widgetType as GenUIComponent['widgetType'],
@@ -247,9 +266,9 @@ export function ChatInterface({
       };
       
       if (data.updateMode && data.updateMode !== 'append') {
-        updateGenUIComponent(component);
+        await updateGenUIComponent(component);
       } else {
-        addGenUIComponent(component);
+        await addGenUIComponent(component);
       }
     },
     onChatEnd: () => {
@@ -298,18 +317,34 @@ export function ChatInterface({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [genUIComponents, messages, isAutoScroll]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || isProcessing) return;
 
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      role: 'user',
-      content: text,
-      timestamp: Date.now(),
-    }]);
+    // 确保有活跃对话
+    let currentId = activeConversationId;
+    if (!currentId) {
+      currentId = await createConversation('新对话');
+    }
 
-    sendMessage(text);
+    // 添加用户消息到 Store
+    if (currentId) {
+      await addMessage(currentId, {
+        id: `msg_${Date.now()}`,
+        role: 'user',
+        content: text,
+        timestamp: Date.now(),
+      });
+
+      // 如果是第一条消息，更新对话标题
+      if (activeConversation && activeConversation.messages.length === 0) {
+        const newTitle = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+        await updateConversation(currentId, { title: newTitle });
+      }
+    }
+
+    // 发送消息到后端（传递 conversationId）
+    sendMessage(text, { conversationId: currentId });
     setInput('');
   };
 
