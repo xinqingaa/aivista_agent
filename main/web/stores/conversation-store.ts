@@ -327,55 +327,53 @@ export const useConversationStore = create<ConversationStore>()(
        * 切换侧边栏状态
        */
       toggleSidebar: () => {
-        set((state) => {
-          const currentState = state.ui.sidebar.state;
-          let newState: SidebarState;
+        const currentState = useConversationStore.getState().ui.sidebar.state;
+        let newState: SidebarState;
 
-          if (currentState === 'expanded') {
-            newState = 'collapsed';
-          } else if (currentState === 'collapsed') {
-            newState = 'hidden';
-          } else {
-            newState = 'expanded';
-          }
+        if (currentState === 'expanded') {
+          newState = 'collapsed';
+        } else if (currentState === 'collapsed') {
+          newState = 'hidden';
+        } else {
+          newState = 'expanded';
+        }
 
-          return {
-            ui: {
-              ...state.ui,
-              sidebar: {
-                ...state.ui.sidebar,
-                state: newState,
-              },
+        set({
+          ui: {
+            ...useConversationStore.getState().ui,
+            sidebar: {
+              ...useConversationStore.getState().ui.sidebar,
+              state: newState,
             },
-          };
-        });
+          },
+        } as Partial<ConversationStore>);
       },
 
       /**
        * 设置侧边栏状态
        */
       setSidebarState: (state: SidebarState) => {
-        set((prevState) => ({
+        set({
           ui: {
-            ...prevState.ui,
+            ...useConversationStore.getState().ui,
             sidebar: {
-              ...prevState.ui.sidebar,
+              ...useConversationStore.getState().ui.sidebar,
               state,
             },
           },
-        }));
+        } as Partial<ConversationStore>);
       },
 
       /**
        * 设置是否为移动端
        */
       setIsMobile: (isMobile: boolean) => {
-        set((state) => ({
+        set({
           ui: {
-            ...state.ui,
+            ...useConversationStore.getState().ui,
             isMobile,
           },
-        }));
+        } as Partial<ConversationStore>);
       },
 
       // ========== 数据加载 ==========

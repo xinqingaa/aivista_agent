@@ -26,7 +26,7 @@ export class GenUIComponent {
   @Column('varchar')
   widgetType: string;
 
-  @Column('jsonb')
+  @Column('simple-json')
   props: Record<string, any>;
 
   @Column({
@@ -39,7 +39,7 @@ export class GenUIComponent {
   @Column('varchar', { nullable: true })
   targetId: string;
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   metadata: Record<string, any>;
 
   @CreateDateColumn({ type: 'bigint' })

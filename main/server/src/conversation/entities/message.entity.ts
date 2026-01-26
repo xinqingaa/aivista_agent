@@ -31,7 +31,7 @@ export class Message {
   @Column('text')
   content: string;
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   metadata: {
     sessionId?: string;
     maskData?: any;

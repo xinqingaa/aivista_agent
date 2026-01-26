@@ -200,6 +200,11 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
  */
 export interface UseAgentChatOptions {
   /**
+   * 连接建立回调
+   */
+  onConnection?: (data: { status: string; sessionId: string; conversationId: string }) => void;
+
+  /**
    * 聊天开始回调
    */
   onChatStart?: () => void;
@@ -248,6 +253,7 @@ interface UseAgentChatReturn extends UseSSEReturn {
 
 export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatReturn {
   const {
+    onConnection,
     onChatStart,
     onThoughtLog,
     onEnhancedPrompt,
@@ -259,6 +265,7 @@ export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatRet
 
   // 使用 ref 存储最新的回调函数，避免闭包陷阱
   const callbacksRef = useRef({
+    onConnection,
     onChatStart,
     onThoughtLog,
     onEnhancedPrompt,
@@ -271,6 +278,7 @@ export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatRet
   // 更新 ref 当回调函数变化时
   useEffect(() => {
     callbacksRef.current = {
+      onConnection,
       onChatStart,
       onThoughtLog,
       onEnhancedPrompt,
@@ -279,12 +287,18 @@ export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatRet
       onChatEnd,
       onStatusChange,
     };
-  }, [onChatStart, onThoughtLog, onEnhancedPrompt, onGenUIComponent, onError, onChatEnd, onStatusChange]);
+  }, [onConnection, onChatStart, onThoughtLog, onEnhancedPrompt, onGenUIComponent, onError, onChatEnd, onStatusChange]);
 
   const sse = useSSE({
     url: '/api/agent/chat',
     autoConnect: false, // 不自动连接，手动发送消息时连接
     strategy: {
+      onConnection: (event) => {
+        const callback = callbacksRef.current.onConnection;
+        if (callback && event.data) {
+          callback(event.data);
+        }
+      },
       onThoughtLog: (event) => {
         const callback = callbacksRef.current.onThoughtLog;
         if (callback && event.data) {

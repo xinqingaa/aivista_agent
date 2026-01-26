@@ -28,7 +28,7 @@ export class Conversation {
   })
   status: 'active' | 'completed' | 'failed';
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   metadata: {
     model?: string;
     totalMessages?: number;

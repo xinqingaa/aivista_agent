@@ -42,22 +42,80 @@
 
 ### 1. 启动后端服务
 
+后端项目支持多种数据库启动方案，根据你的环境选择最适合的方式：
+
+#### 📖 完整启动方案指南
+
+请查看 [后端启动指南](./BACKEND_STARTUP_GUIDE.md) 获取详细的启动方案，包括：
+
+- **方案一：SQLite**（推荐）- 零配置快速启动，无需安装数据库
+- **方案二：Docker PostgreSQL** - 容器化数据库，环境隔离
+- **方案三：本地 PostgreSQL** - 生产环境推荐
+- **方案四：云数据库 Supabase** - 零部署，云端托管
+
+#### 🚀 快速启动（SQLite，推荐新手）
+
 ```bash
 # 进入后端目录
 cd main/server
 
-# 确保 PostgreSQL 正在运行
-# 如果没有安装，可以使用 Homebrew 安装：
-# brew install postgresql@15
-# brew services start postgresql@15
+# 复制环境变量文件
+cp .env.example .env
+
+# 编辑 .env，设置 API Key
+# DASHSCOPE_API_KEY=your_api_key_here
+# DB_TYPE=sqlite  # 使用默认配置
+
+# 安装依赖
+pnpm install
+
+# 启动开发服务器
+pnpm run start:dev
+```
+
+#### 🐳 使用 Docker（推荐团队开发）
+
+```bash
+# 进入后端目录
+cd main/server
+
+# 启动 PostgreSQL 容器
+docker-compose up -d
+
+# 配置 .env
+# DB_TYPE=postgres
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USER=aivista
+# DB_PASSWORD=aivista_password
+# DB_NAME=aivista_dev
+
+# 安装依赖并启动
+pnpm install
+pnpm run start:dev
+```
+
+#### 🐘 使用本地 PostgreSQL（生产环境）
+
+```bash
+# 安装 PostgreSQL（macOS）
+brew install postgresql@15
+brew services start postgresql@15
 
 # 创建数据库
 createdb aivista_dev
 
-# 安装依赖（如果需要）
-pnpm install
+# 配置 .env
+# DB_TYPE=postgres
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USER=postgres
+# DB_PASSWORD=your_password
+# DB_NAME=aivista_dev
 
-# 启动开发服务器
+# 启动服务
+cd main/server
+pnpm install
 pnpm run start:dev
 ```
 

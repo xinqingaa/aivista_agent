@@ -284,11 +284,13 @@ data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1
           this.logger.warn(`Using deprecated sessionId: ${request.sessionId}, please migrate to conversationId`);
         }
       } catch (error) {
-        this.logger.error(`Conversation not found: ${requestedConversationId}`);
-        return response.status(404).json({
-          error: 'Conversation not found',
-          conversationId: requestedConversationId,
+        // 会话不存在，创建新会话（兼容前端本地创建的会话 ID）
+        this.logger.warn(`Conversation not found: ${requestedConversationId}, creating new one`);
+        conversation = await this.conversationService.create({
+          title: request.text.slice(0, 50) + (request.text.length > 50 ? '...' : ''),
+          status: 'active',
         });
+        this.logger.log(`Created new conversation: ${conversation.id} (replacing ${requestedConversationId})`);
       }
     } else {
       // 创建新会话

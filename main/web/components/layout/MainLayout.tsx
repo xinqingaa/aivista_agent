@@ -5,15 +5,16 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useConversationStore } from '@/stores/conversation-store';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { ChatInterface } from '@/components/chat/chat-interface';
 import { cn } from '@/lib/utils';
 
 export function MainLayout() {
-  const { ui, setIsMobile } = useConversationStore();
+  const { ui, setIsMobile, setSidebarState } = useConversationStore();
   const [isClient, setIsClient] = useState(false);
+  const initializedRef = useRef(false);
 
   // 客户端渲染标记
   useEffect(() => {
@@ -26,19 +27,16 @@ export function MainLayout() {
 
     const checkMobile = () => {
       const isMobileView = window.innerWidth < 768;
-      setIsMobile(isMobileView);
 
-      // 移动端默认隐藏侧边栏
-      if (isMobileView && ui.sidebar.state === 'expanded') {
-        useConversationStore.setState({
-          ui: {
-            ...ui,
-            sidebar: {
-              ...ui.sidebar,
-              state: 'hidden',
-            },
-          },
-        });
+      // 只在状态真正改变时才更新
+      if (ui.isMobile !== isMobileView) {
+        setIsMobile(isMobileView);
+      }
+
+      // 移动端默认隐藏侧边栏（只在初始化时执行一次）
+      if (!initializedRef.current && isMobileView && ui.sidebar.state === 'expanded') {
+        initializedRef.current = true;
+        setSidebarState('hidden');
       }
     };
 
@@ -48,7 +46,7 @@ export function MainLayout() {
     return () => {
       window.removeEventListener('resize', checkMobile);
     };
-  }, [isClient, ui, setIsMobile]);
+  }, [isClient, setIsMobile, setSidebarState]);
 
   if (!isClient) {
     // 服务端渲染返回 null，避免水合不匹配

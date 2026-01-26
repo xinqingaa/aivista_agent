@@ -215,9 +215,18 @@ export function ChatInterface({
   }, [activeConversationId, addGenUIComponentToStore, updateGenUIComponentInStore]);
 
   const { sendMessage } = useAgentChat({
+    onConnection: async (data) => {
+      // 更新 activeConversationId 为后端返回的 ID
+      if (data.conversationId && data.conversationId !== activeConversationId) {
+        // 需要更新 store 中的 activeConversationId
+        useConversationStore.setState({
+          activeConversationId: data.conversationId,
+        });
+      }
+    },
     onChatStart: async () => {
       setIsProcessing(true);
-      
+
       // 确保有活跃对话
       let currentId = activeConversationId;
       if (!currentId) {

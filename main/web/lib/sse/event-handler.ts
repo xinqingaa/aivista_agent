@@ -10,6 +10,7 @@ import { SSEEvent } from '@/lib/types/sse';
  */
 export interface EventHandlerStrategy {
   onEvent?(event: SSEEvent): void;
+  onConnection?: (event: SSEEvent) => void;
   onThoughtLog?: (event: SSEEvent) => void;
   onEnhancedPrompt?: (event: SSEEvent) => void;
   onGenUIComponent?: (event: SSEEvent) => void;
@@ -30,6 +31,12 @@ export function createEventHandler(strategy: EventHandlerStrategy): (event: SSEE
 
     // 根据事件类型调用特定处理器
     switch (event.type) {
+      case 'connection':
+        if (strategy.onConnection) {
+          strategy.onConnection(event);
+        }
+        break;
+
       case 'thought_log':
         if (strategy.onThoughtLog) {
           strategy.onThoughtLog(event);
@@ -72,7 +79,7 @@ export function createEventHandler(strategy: EventHandlerStrategy): (event: SSEE
         break;
 
       default:
-        // 其他事件类型（connection、heartbeat 等）
+        // 其他事件类型（heartbeat 等）
         break;
     }
   };

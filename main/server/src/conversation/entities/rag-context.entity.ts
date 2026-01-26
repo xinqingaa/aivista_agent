@@ -26,13 +26,13 @@ export class RAGContext {
   @Column('text')
   originalPrompt: string;
 
-  @Column('jsonb')
+  @Column('simple-json')
   retrievedContext: any;
 
   @Column('text')
   finalPrompt: string;
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   metadata: Record<string, any>;
 
   @CreateDateColumn({ type: 'bigint' })
