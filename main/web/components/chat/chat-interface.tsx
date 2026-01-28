@@ -1,6 +1,7 @@
 /**
  * 基础聊天界面组件
  * 使用 GenUI 协议驱动的动态渲染系统
+ * 集成会话管理功能
  */
 
 'use client';
@@ -23,6 +24,9 @@ import {
   ActionItem,
 } from '@/genui';
 import { cn } from '@/lib/utils';
+import { useSessionStore } from '@/stores/session-store';
+import { MessageService } from '@/lib/services/message-service';
+import { initDatabase } from '@/lib/db/database';
 
 interface ChatInterfaceProps {
   title?: string;
@@ -150,18 +154,68 @@ export function ChatInterface({
   placeholder = '输入你的创意，让 AI 来实现...',
   onChatEnd,
 }: ChatInterfaceProps) {
-  // 状态管理
+  // ========== 状态管理 ==========
   const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: number }>>([]);
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAutoScroll, setIsAutoScroll] = useState(true);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // GenUI 组件状态（统一管理所有动态组件）
   const [genUIComponents, setGenUIComponents] = useState<GenUIComponent[]>([]);
 
+  // ========== 会话管理 ==========
+  const {
+    currentSessionId,
+    createSession,
+    loadSessions,
+  } = useSessionStore();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // ========== 初始化数据库 ==========
+  useEffect(() => {
+    if (!isInitialized) {
+      initDatabase()
+        .then(() => {
+          console.log('[ChatInterface] Database initialized');
+          setIsInitialized(true);
+        })
+        .catch((error) => {
+          console.error('[ChatInterface] Failed to initialize database:', error);
+        });
+    }
+  }, [isInitialized]);
+
+  // ========== 加载会话消息 ==========
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const loadCurrentSession = async () => {
+      if (currentSessionId) {
+        // 加载当前会话的消息
+        try {
+          const sessionMessages = await MessageService.loadSessionMessages(currentSessionId);
+          setMessages(sessionMessages);
+        } catch (error) {
+          console.error('[ChatInterface] Failed to load session messages:', error);
+        }
+      } else {
+        // 如果没有当前会话，创建新会话
+        try {
+          const newSessionId = await createSession();
+          console.log('[ChatInterface] Created new session:', newSessionId);
+          setMessages([]);
+        } catch (error) {
+          console.error('[ChatInterface] Failed to create session:', error);
+        }
+      }
+    };
+
+    loadCurrentSession();
+  }, [currentSessionId, isInitialized, createSession]);
 
   // 添加 GenUI 组件的回调
   const addGenUIComponent = useCallback((component: GenUIComponent) => {
@@ -208,6 +262,17 @@ export function ChatInterface({
     onChatStart: () => {
       setIsProcessing(true);
       setGenUIComponents([]); // 清空组件状态
+
+      // 保存用户消息到数据库
+      if (currentSessionId && input.trim()) {
+        MessageService.saveUserMessage(currentSessionId, input.trim())
+          .then(() => {
+            console.log('[ChatInterface] User message saved');
+          })
+          .catch((error) => {
+            console.error('[ChatInterface] Failed to save user message:', error);
+          });
+      }
     },
     onThoughtLog: (data: ThoughtLogEventData) => {
       // 将 thought_log 事件转换为 ThoughtLogItem 组件
@@ -245,11 +310,26 @@ export function ChatInterface({
         updateMode: data.updateMode,
         targetId: data.targetId,
       };
-      
+
       if (data.updateMode && data.updateMode !== 'append') {
         updateGenUIComponent(component);
       } else {
         addGenUIComponent(component);
+      }
+
+      // 保存助手消息到数据库（在接收到第一个 GenUI 组件时）
+      if (currentSessionId && !component.id?.startsWith('temp')) {
+        MessageService.saveAssistantMessage(
+          currentSessionId,
+          'AI 响应',
+          [component]
+        )
+          .then(() => {
+            console.log('[ChatInterface] Assistant message saved');
+          })
+          .catch((error) => {
+            console.error('[ChatInterface] Failed to save assistant message:', error);
+          });
       }
     },
     onChatEnd: () => {
@@ -302,6 +382,7 @@ export function ChatInterface({
     const text = input.trim();
     if (!text) return;
 
+    // 添加到本地状态（立即显示）
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       role: 'user',
@@ -309,6 +390,7 @@ export function ChatInterface({
       timestamp: Date.now(),
     }]);
 
+    // 发送消息（会自动保存到数据库的 onChatStart 回调中）
     sendMessage(text);
     setInput('');
   };

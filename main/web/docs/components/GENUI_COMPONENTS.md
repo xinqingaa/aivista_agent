@@ -323,7 +323,7 @@ export function EnhancedPromptView({ original, retrieved, final }: EnhancedPromp
         <div className="flex items-start gap-3">
           <SparklesIcon />
           <div>
-            <div className="text-sm font-medium">Prompt 已优化</div>
+            <div className="text-sm font-medium">提示词已增强</div>
             <div className="text-sm text-muted-foreground">{final}</div>
           </div>
         </div>

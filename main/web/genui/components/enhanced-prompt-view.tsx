@@ -25,7 +25,7 @@ export function EnhancedPromptView({ original, retrieved, final }: EnhancedPromp
             <Sparkles className="w-4 h-4" />
           </div>
           <div className="space-y-1 flex-1">
-            <div className="text-sm font-medium">Prompt 已优化</div>
+            <div className="text-sm font-medium">提示词已增强</div>
             <div className="text-sm text-muted-foreground leading-relaxed">
               {final}
             </div>
