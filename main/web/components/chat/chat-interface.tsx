@@ -56,7 +56,7 @@ function GenUIComponentRenderer({
   const thoughtLogs = components.filter(c => c.widgetType === 'ThoughtLogItem');
   const enhancedPrompts = components.filter(c => c.widgetType === 'EnhancedPromptView');
   const images = components.filter(c => c.widgetType === 'ImageView');
-  
+
   // 获取最后一个 ImageView 的 ID，用于 ActionPanel 关联
   const lastImageId = images.length > 0 ? images[images.length - 1].id : null;
 
@@ -64,35 +64,35 @@ function GenUIComponentRenderer({
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* 1. 思考过程 (Timeline) */}
       {(thoughtLogs.length > 0 || isProcessing) && (
-        <div className="pl-2">
-          <div className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground">
-            <div className={cn("w-2 h-2 rounded-full", isProcessing ? "bg-blue-500 animate-pulse" : "bg-muted")} />
-            AI 思考过程
-          </div>
-          <div className="ml-1 pl-4 border-l-2 border-muted/50 space-y-0">
-            {thoughtLogs.map((component, index) => {
-              // 为 ThoughtLogItem 注入 isLast 属性
-              const isLast = index === thoughtLogs.length - 1;
-              const propsWithIsLast = {
-                ...component.props,
-                isLast,
-              };
-              
-              return (
-                <GenUIRenderer
-                  key={component.id || `thought-${index}`}
-                  component={{
-                    ...component,
-                    props: propsWithIsLast,
-                  }}
-                />
-              );
-            })}
-            {isProcessing && thoughtLogs.length === 0 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2 pl-6">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                正在分析意图...
-              </div>
+      <div className="pl-2">
+        <div className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground">
+          <div className={cn("w-2 h-2 rounded-full", isProcessing ? "bg-blue-500 animate-pulse" : "bg-muted")} />
+          AI 思考过程
+        </div>
+        <div className="ml-1 pl-4 border-l-2 border-muted/50 space-y-0">
+          {thoughtLogs.map((component, index) => {
+        // 为 ThoughtLogItem 注入 isLast 属性
+        const isLast = index === thoughtLogs.length - 1;
+        const propsWithIsLast = {
+          ...component.props,
+          isLast,
+        };
+
+        return (
+          <GenUIRenderer
+            key={component.id || `thought-${index}`}
+            component={{
+              ...component,
+              props: propsWithIsLast,
+            }}
+            />
+        );
+      })}
+          {isProcessing && thoughtLogs.length === 0 && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2 pl-6">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          正在分析意图...
+        </div>
             )}
           </div>
         </div>
@@ -164,6 +164,10 @@ export function ChatInterface({
 
   // GenUI 组件状态（统一管理所有动态组件）
   const [genUIComponents, setGenUIComponents] = useState<GenUIComponent[]>([]);
+  // Ref 持有最新列表，供 onChatEnd 同步调用时读取（避免闭包陈旧）
+  const genUIComponentsRef = useRef<GenUIComponent[]>([]);
+  // 发送消息时的会话 ID，供 onChatEnd 保存时使用（避免用户流式期间切换会话导致保存到错误会话）
+  const sessionIdWhenSendRef = useRef<string | null>(null);
 
   // ========== 会话管理 ==========
   const {
@@ -193,12 +197,45 @@ export function ChatInterface({
   useEffect(() => {
     if (!isInitialized) return;
 
+    const sessionIdAtStart = currentSessionId;
+
     const loadCurrentSession = async () => {
-      if (currentSessionId) {
-        // 加载当前会话的消息
+      // 切换会话时，先清空当前展示状态（不动 ref，ref 仅表示当前流式回合要保存的组件）
+      setGenUIComponents([]);
+      setMessages([]);
+      setIsProcessing(false);
+
+      if (sessionIdAtStart) {
+        // 加载本次 effect 对应的会话消息
         try {
-          const sessionMessages = await MessageService.loadSessionMessages(currentSessionId);
-          setMessages(sessionMessages);
+          const sessionMessages = await MessageService.loadSessionMessages(sessionIdAtStart);
+
+          // 忽略过期结果：若用户已切换到其他会话，不覆盖当前 UI
+          const currentSessionIdNow = useSessionStore.getState().currentSessionId;
+          if (currentSessionIdNow !== sessionIdAtStart) {
+            return;
+          }
+
+          // 提取用户消息和 GenUI 组件
+          const userMessages: typeof messages = [];
+          const allGenUIComponents: GenUIComponent[] = [];
+
+          for (const msg of sessionMessages) {
+            if (msg.role === 'user') {
+              userMessages.push(msg);
+            } else if (msg.role === 'assistant' && msg.genUIComponents) {
+              // 恢复历史的 GenUI 组件到渲染状态
+              allGenUIComponents.push(...msg.genUIComponents);
+            }
+          }
+
+          setMessages(userMessages);
+          setGenUIComponents(allGenUIComponents);
+
+          console.log('[ChatInterface] Loaded session:', sessionIdAtStart, {
+            userMessages: userMessages.length,
+            genUIComponents: allGenUIComponents.length,
+          });
         } catch (error) {
           console.error('[ChatInterface] Failed to load session messages:', error);
         }
@@ -207,7 +244,6 @@ export function ChatInterface({
         try {
           const newSessionId = await createSession();
           console.log('[ChatInterface] Created new session:', newSessionId);
-          setMessages([]);
         } catch (error) {
           console.error('[ChatInterface] Failed to create session:', error);
         }
@@ -217,62 +253,57 @@ export function ChatInterface({
     loadCurrentSession();
   }, [currentSessionId, isInitialized, createSession]);
 
-  // 添加 GenUI 组件的回调
+  // 添加 GenUI 组件的回调：先同步更新 ref 再 setState，保证 onChatEnd 在同一 tick 内能读到最新值
   const addGenUIComponent = useCallback((component: GenUIComponent) => {
-    setGenUIComponents(prev => [...prev, component]);
+    const next = [...genUIComponentsRef.current, component];
+    genUIComponentsRef.current = next;
+    setGenUIComponents(next);
   }, []);
 
-  // 更新 GenUI 组件的回调（根据 updateMode）
+  // 更新 GenUI 组件的回调：用 ref 计算 next，先同步更新 ref 再 setState
   const updateGenUIComponent = useCallback((component: GenUIComponent) => {
-    setGenUIComponents(prev => {
-      const updateMode = component.updateMode || 'append';
-      
-      switch (updateMode) {
-        case 'replace':
-          // 替换同 ID 的组件
-          if (component.id) {
-            const index = prev.findIndex(c => c.id === component.id);
-            if (index !== -1) {
-              const newComponents = [...prev];
-              newComponents[index] = component;
-              return newComponents;
-            }
+    const prev = genUIComponentsRef.current;
+    const updateMode = component.updateMode || 'append';
+    let next: GenUIComponent[];
+
+    switch (updateMode) {
+      case 'replace':
+        if (component.id) {
+          const index = prev.findIndex(c => c.id === component.id);
+          if (index !== -1) {
+            next = [...prev];
+            next[index] = component;
+          } else {
+            next = [...prev, component];
           }
-          return [...prev, component];
-          
-        case 'update':
-          // 更新同 ID 组件的属性
-          if (component.id) {
-            return prev.map(c => 
-              c.id === component.id 
-                ? { ...c, props: { ...c.props, ...component.props } }
-                : c
-            );
-          }
-          return [...prev, component];
-          
-        case 'append':
-        default:
-          return [...prev, component];
-      }
-    });
+        } else {
+          next = [...prev, component];
+        }
+        break;
+      case 'update':
+        if (component.id) {
+          next = prev.map(c =>
+            c.id === component.id
+              ? { ...c, props: { ...c.props, ...component.props } }
+              : c
+          );
+        } else {
+          next = [...prev, component];
+        }
+        break;
+      case 'append':
+      default:
+        next = [...prev, component];
+    }
+    genUIComponentsRef.current = next;
+    setGenUIComponents(next);
   }, []);
 
   const { sendMessage } = useAgentChat({
     onChatStart: () => {
       setIsProcessing(true);
-      setGenUIComponents([]); // 清空组件状态
-
-      // 保存用户消息到数据库
-      if (currentSessionId && input.trim()) {
-        MessageService.saveUserMessage(currentSessionId, input.trim())
-          .then(() => {
-            console.log('[ChatInterface] User message saved');
-          })
-          .catch((error) => {
-            console.error('[ChatInterface] Failed to save user message:', error);
-          });
-      }
+      setGenUIComponents([]);
+      genUIComponentsRef.current = []; // 清空 ref，准备接收本轮响应
     },
     onThoughtLog: (data: ThoughtLogEventData) => {
       // 将 thought_log 事件转换为 ThoughtLogItem 组件
@@ -317,23 +348,29 @@ export function ChatInterface({
         addGenUIComponent(component);
       }
 
-      // 保存助手消息到数据库（在接收到第一个 GenUI 组件时）
-      if (currentSessionId && !component.id?.startsWith('temp')) {
+      // 保存逻辑移到 onChatEnd，避免重复保存
+    },
+    onChatEnd: () => {
+      setIsProcessing(false);
+
+      // 从 ref 读取最新组件列表（避免闭包陈旧导致保存空数组）
+      const componentsToSave = genUIComponentsRef.current;
+      // 使用发送时的会话 ID 保存，避免用户流式期间切换会话导致保存到错误会话
+      const sessionIdToSave = sessionIdWhenSendRef.current;
+      if (sessionIdToSave && componentsToSave.length > 0) {
         MessageService.saveAssistantMessage(
-          currentSessionId,
+          sessionIdToSave,
           'AI 响应',
-          [component]
+          componentsToSave
         )
           .then(() => {
-            console.log('[ChatInterface] Assistant message saved');
+            console.log('[ChatInterface] Assistant message saved with', componentsToSave.length, 'components');
           })
           .catch((error) => {
             console.error('[ChatInterface] Failed to save assistant message:', error);
           });
       }
-    },
-    onChatEnd: () => {
-      setIsProcessing(false);
+
       onChatEnd?.();
     },
     onStatusChange: (status) => {
@@ -380,17 +417,30 @@ export function ChatInterface({
 
   const handleSend = () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || !currentSessionId) return;
 
-    // 添加到本地状态（立即显示）
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      role: 'user',
+    // 记录发送时的会话 ID，供 onChatEnd 保存助手消息时使用
+    sessionIdWhenSendRef.current = currentSessionId;
+
+    // 立即添加到本地状态（用于UI显示）
+    const userMessage = {
+      id: `temp_${Date.now()}`, // 临时ID，保存后会更新
+      role: 'user' as const,
       content: text,
       timestamp: Date.now(),
-    }]);
+    };
+    setMessages(prev => [...prev, userMessage]);
 
-    // 发送消息（会自动保存到数据库的 onChatStart 回调中）
+    // 保存用户消息到数据库
+    MessageService.saveUserMessage(currentSessionId, text)
+      .then(() => {
+        console.log('[ChatInterface] User message saved');
+      })
+      .catch((error) => {
+        console.error('[ChatInterface] Failed to save user message:', error);
+      });
+
+    // 发送消息到后端（会触发 onChatStart）
     sendMessage(text);
     setInput('');
   };
