@@ -365,6 +365,8 @@ export function ChatInterface({
         )
           .then(() => {
             console.log('[ChatInterface] Assistant message saved with', componentsToSave.length, 'components');
+            // 刷新侧边栏会话列表，使 lastMessage 立即更新
+            loadSessions();
           })
           .catch((error) => {
             console.error('[ChatInterface] Failed to save assistant message:', error);

@@ -15,10 +15,10 @@ import { Home } from 'lucide-react';
 
 export default function ChatPage() {
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen mx-auto container flex flex-col border">
       {/* 顶部工具栏 */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
-        <div className="container mx-auto py-3 flex items-center justify-between">
+        <div className=" px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">AiVista</h1>
             <p className="text-xs text-muted-foreground">
@@ -42,7 +42,7 @@ export default function ChatPage() {
         <Sidebar />
 
         {/* 聊天界面 */}
-        <div className="flex-1 min-w-0 container mx-auto py-4">
+        <div className="flex-1 min-w-0  mx-auto py-4">
           <Card className="h-full border-0 sm:border bg-background/50 backdrop-blur-sm shadow-sm">
             <ChatInterface
               title="AI 画图"

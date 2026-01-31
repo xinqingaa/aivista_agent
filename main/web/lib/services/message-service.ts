@@ -168,13 +168,14 @@ export class MessageService {
         .equals(sessionId)
         .sortBy('timestamp');
 
-      const lastMessage = messages[messages.length - 1];
-      const lastMessagePreview = lastMessage?.content.substring(0, 50) || '';
+      // 只取最后一条 user 消息作为预览（避免显示 "AI 响应"）
+      const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+      const lastMessagePreview = lastUserMessage?.content.substring(0, 50) || '';
 
       await db.sessions.update(sessionId, {
         updatedAt: Date.now(),
         messageCount: messages.length,
-        lastMessage: lastMessagePreview + (lastMessage?.content.length > 50 ? '...' : ''),
+        lastMessage: lastMessagePreview + (lastUserMessage && lastUserMessage.content.length > 50 ? '...' : ''),
       });
     } catch (error) {
       console.error('[MessageService] Failed to update session info:', error);
