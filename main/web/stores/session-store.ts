@@ -211,18 +211,15 @@ export const useSessionStore = create<SessionState>()(
        */
       updateSessionTitle: async (sessionId: string, title: string) => {
         try {
-          const now = Date.now();
-
-          // 更新数据库
+          // 更新数据库（不更新 updatedAt，该时间只在与 AI 对话时更新）
           await db.sessions.update(sessionId, {
             title,
-            updatedAt: now,
           });
 
           // 更新状态
           set((state) => ({
             sessions: state.sessions.map((s) =>
-              s.id === sessionId ? { ...s, title, updatedAt: now } : s
+              s.id === sessionId ? { ...s, title } : s
             ),
           }));
 

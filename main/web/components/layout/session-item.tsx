@@ -65,8 +65,11 @@ export function SessionItem({
   onUpdateTitle,
   collapsed = false,
 }: SessionItemProps) {
-  // 当前显示的标题（与界面显示一致）
-  const displayTitle = session.lastMessage || session.title;
+  // 显示优先级：用户自定义标题 > lastMessage > 默认标题
+  // 如果 title 不是默认值"新对话"，说明用户自定义了，优先显示
+  const displayTitle = session.title !== '新对话' 
+    ? session.title 
+    : (session.lastMessage || session.title);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(displayTitle);
@@ -157,7 +160,7 @@ export function SessionItem({
             )}
           >
             {/* 显示优先级：将来可扩展为 serverTitle > lastMessage > title */}
-            {session.lastMessage || session.title}
+            {displayTitle}
           </div>
         )}
       </div>
