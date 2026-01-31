@@ -29,6 +29,7 @@ export interface AgentState {
       imageUrl: string;
     };
     preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo';
+    previousPrompts?: string[]; // 历轮原始提示词，多轮文生图时使用（不使用 RAG 增强）
   };
 
   // Agent 处理结果

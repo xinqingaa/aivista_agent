@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Res, Logger } from '@nestjs/common';
 import { Response } from 'express';
-import { IsString, IsOptional, ValidateNested, IsObject, IsEnum } from 'class-validator';
+import { IsString, IsOptional, ValidateNested, IsObject, IsEnum, IsArray } from 'class-validator';
 import { 
   ApiTags, 
   ApiOperation, 
@@ -67,6 +67,16 @@ class ChatRequestDto {
   @IsOptional()
   @IsEnum(['qwen-image', 'qwen-image-max', 'qwen-image-plus', 'z-image-turbo'])
   preferredModel?: 'qwen-image' | 'qwen-image-max' | 'qwen-image-plus' | 'z-image-turbo';
+
+  @ApiPropertyOptional({
+    description: '历轮原始用户提示词，用于多轮文生图时拼接（不使用 RAG 增强）',
+    type: [String],
+    example: ['画一只猫'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  previousPrompts?: string[];
 }
 
 /**
@@ -265,6 +275,7 @@ data: {"type":"stream_end","timestamp":1234567890,"data":{"sessionId":"session_1
         text: request.text,
         maskData: request.maskData,
         preferredModel: request.preferredModel,
+        previousPrompts: request.previousPrompts,
       },
       uiComponents: [],
       thoughtLogs: [],

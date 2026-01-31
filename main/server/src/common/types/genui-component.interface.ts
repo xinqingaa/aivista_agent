@@ -19,6 +19,8 @@ export interface GenUIComponent {
       id: string;
       label: string;
       type: 'button' | 'slider' | 'select';
+      icon?: string; // Lucide icon name: Download, ExternalLink, RefreshCw
+      buttonType?: 'primary' | 'secondary' | 'outline' | 'danger';
       [key: string]: any;
     }>;
     [key: string]: any;

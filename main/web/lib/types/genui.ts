@@ -88,8 +88,10 @@ export interface AgentMessageProps {
  */
 export interface ActionPanelProps {
   actions: ActionItem[];
+  imageUrl?: string; // Latest image URL for download/preview (injected by renderer from last ImageView)
   metadata?: {
     context?: string;
+    imageUrl?: string;
     [key: string]: any;
   };
   onAction?: (action: ActionItem) => void;
@@ -131,6 +133,7 @@ export interface ActionItem {
   id: string;
   label: string;
   type: 'button' | 'slider' | 'select' | 'input';
+  icon?: string; // Lucide icon name, e.g. 'Download', 'ExternalLink', 'RefreshCw'
   buttonType?: 'primary' | 'secondary' | 'outline' | 'danger';
   disabled?: boolean;
   value?: any;

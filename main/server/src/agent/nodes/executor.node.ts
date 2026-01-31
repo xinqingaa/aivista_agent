@@ -33,8 +33,17 @@ export class ExecutorNode {
 
     const { action } = state.intent;
 
-    // 使用增强后的 Prompt（如果存在），否则使用原始 Prompt
-    const prompt = state.enhancedPrompt?.final || state.intent.prompt || state.userInput.text;
+    // 多轮续写：有 previousPrompts 时使用历轮原始提示词拼接，不使用 RAG 增强
+    let prompt: string;
+    if (state.userInput.previousPrompts?.length) {
+      prompt = [...state.userInput.previousPrompts, state.userInput.text].join('\n');
+      this.logger.log(
+        `Executor Node: Using previousPrompts (${state.userInput.previousPrompts.length} items) + current text`,
+      );
+    } else {
+      prompt =
+        state.enhancedPrompt?.final || state.intent.prompt || state.userInput.text;
+    }
 
     // 先推送"开始执行任务"的思考日志
     const startThoughtLog = {
@@ -221,13 +230,17 @@ export class ExecutorNode {
         widgetType: 'ActionPanel',
         props: {
           actions: [
+            { id: 'download_btn', label: '下载', type: 'button', icon: 'Download' },
+            { id: 'preview_btn', label: '预览', type: 'button', icon: 'ExternalLink' },
             {
               id: 'regenerate_btn',
               label: '重新生成',
               type: 'button',
               buttonType: 'primary',
+              icon: 'RefreshCw',
             },
           ],
+          metadata: { imageUrl },
         },
         timestamp: Date.now(),
       },

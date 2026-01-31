@@ -235,9 +235,14 @@ export interface UseAgentChatOptions {
   onStatusChange?: (status: any) => void;
 }
 
+export interface SendMessageOptions {
+  maskData?: { base64: string; imageUrl: string };
+  previousPrompts?: string[];
+}
+
 interface UseAgentChatReturn extends UseSSEReturn {
   // 发送消息
-  sendMessage: (text: string, maskData?: any) => void;
+  sendMessage: (text: string, options?: SendMessageOptions) => void;
 }
 
 export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatReturn {
@@ -319,10 +324,12 @@ export function useAgentChat(options: UseAgentChatOptions = {}): UseAgentChatRet
   });
 
   // 发送消息方法
-  const sendMessage = useCallback((text: string, maskData?: any) => {
+  const sendMessage = useCallback((text: string, options?: SendMessageOptions) => {
     const body = {
       text,
-      ...(maskData && { maskData }),
+      ...(options?.maskData && { maskData: options.maskData }),
+      ...(options?.previousPrompts &&
+        options.previousPrompts.length > 0 && { previousPrompts: options.previousPrompts }),
     };
 
     if (callbacksRef.current.onChatStart) {

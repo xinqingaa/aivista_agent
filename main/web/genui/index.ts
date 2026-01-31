@@ -83,6 +83,9 @@ export {
 export { ImageView } from './components/image-view';
 export { ThoughtLogItem } from './components/thought-log-item';
 export { EnhancedPromptView } from './components/enhanced-prompt-view';
+export { AgentMessage } from './components/agent-message';
+export { ActionPanel } from './components/action-panel';
+export { SmartCanvas } from './components/smart-canvas';
 
 // ============================================================================
 // 组件注册
@@ -92,11 +95,18 @@ import { GenUIRegistry, ComponentDefinition } from './core/gen-ui-registry';
 import { ImageView } from './components/image-view';
 import { ThoughtLogItem } from './components/thought-log-item';
 import { EnhancedPromptView } from './components/enhanced-prompt-view';
+import { AgentMessage } from './components/agent-message';
+import { ActionPanel } from './components/action-panel';
+import { SmartCanvas } from './components/smart-canvas';
 import {
   validateImageViewProps,
   validateThoughtLogItemProps,
   validateEnhancedPromptViewProps,
+  validateAgentMessageProps,
+  validateActionPanelProps,
+  validateSmartCanvasProps,
 } from './utils/validators';
+import { transformActionPanelProps } from './utils/transformers';
 import { transformImageViewProps } from './utils/transformers';
 
 /**
@@ -118,6 +128,22 @@ const defaultComponentDefinitions: ComponentDefinition[] = [
     type: 'EnhancedPromptView',
     component: EnhancedPromptView,
     validate: validateEnhancedPromptViewProps,
+  },
+  {
+    type: 'AgentMessage',
+    component: AgentMessage,
+    validate: validateAgentMessageProps,
+  },
+  {
+    type: 'ActionPanel',
+    component: ActionPanel,
+    validate: validateActionPanelProps,
+    transform: transformActionPanelProps,
+  },
+  {
+    type: 'SmartCanvas',
+    component: SmartCanvas,
+    validate: validateSmartCanvasProps,
   },
 ];
 
