@@ -13,7 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { EnhancedPromptViewProps } from '@/lib/types/genui';
 
-export function EnhancedPromptView({ original, retrieved, final }: EnhancedPromptViewProps) {
+export function EnhancedPromptView({
+  original,
+  retrieved = [],
+  final,
+  isMerged,
+}: EnhancedPromptViewProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -25,7 +30,9 @@ export function EnhancedPromptView({ original, retrieved, final }: EnhancedPromp
             <Sparkles className="w-4 h-4" />
           </div>
           <div className="space-y-1 flex-1">
-            <div className="text-sm font-medium">提示词已增强</div>
+            <div className="text-sm font-medium">
+              {isMerged ? '提示词（多轮合并）' : '提示词已增强'}
+            </div>
             <div className="text-sm text-muted-foreground leading-relaxed">
               {final}
             </div>
@@ -35,12 +42,12 @@ export function EnhancedPromptView({ original, retrieved, final }: EnhancedPromp
 
       {/* 详情：折叠区域 */}
       <div className="border-t">
-        <button 
+        <button
           onClick={() => setIsOpen(!isOpen)}
           className="w-full flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
         >
           {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-          <span>查看优化详情 (RAG 检索结果)</span>
+          <span>{isMerged ? '查看合并详情' : '查看优化详情 (RAG 检索结果)'}</span>
         </button>
         
         {isOpen && (

@@ -107,14 +107,17 @@ export class AgentService {
           }
 
           // RAG 节点执行后，推送 enhancedPrompt 详细信息
-          if (nodeName === 'rag' && update.enhancedPrompt) {
+          // 多轮续写时跳过：实际使用 Executor 的合并 prompt，由 Executor 推送 EnhancedPromptView
+          if (
+            nodeName === 'rag' &&
+            update.enhancedPrompt &&
+            !(currentState.userInput?.previousPrompts?.length > 0)
+          ) {
             yield {
               type: 'enhanced_prompt',
               timestamp: Date.now(),
               data: update.enhancedPrompt,
             };
-            // RAG 节点后延迟 500ms，让用户看到检索过程
-            // await new Promise(resolve => setTimeout(resolve, 500));
           }
 
           // Critic 节点执行后，推送 qualityCheck 信息（可选）

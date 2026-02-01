@@ -205,17 +205,8 @@ export class ExecutorNode {
       throw error;
     }
 
-    // 生成 GenUI 组件
-    const uiComponents: GenUIComponent[] = [
-      {
-        widgetType: 'AgentMessage',
-        props: {
-          state: 'success',
-          text: `已为您${this.getActionLabel(action)}完成！`,
-          isThinking: false,
-        },
-        timestamp: Date.now(),
-      },
+    // 生成 GenUI 组件（顺序：ImageView → AgentMessage → ActionPanel，确保图片占位先显示）
+    const baseComponents: GenUIComponent[] = [
       {
         widgetType: 'ImageView',
         props: {
@@ -223,6 +214,15 @@ export class ExecutorNode {
           width: 800,
           height: 600,
           fit: 'contain',
+        },
+        timestamp: Date.now(),
+      },
+      {
+        widgetType: 'AgentMessage',
+        props: {
+          state: 'success',
+          text: `已为您${this.getActionLabel(action)}完成！`,
+          isThinking: false,
         },
         timestamp: Date.now(),
       },
@@ -245,6 +245,25 @@ export class ExecutorNode {
         timestamp: Date.now(),
       },
     ];
+
+    // 多轮续写时，在顶部添加合并后的提示词展示
+    const mergedPromptView: GenUIComponent | null =
+      state.userInput.previousPrompts?.length
+        ? {
+            widgetType: 'EnhancedPromptView',
+            props: {
+              original: state.userInput.text,
+              final: prompt,
+              retrieved: [],
+              isMerged: true,
+            },
+            timestamp: Date.now(),
+          }
+        : null;
+
+    const uiComponents: GenUIComponent[] = mergedPromptView
+      ? [mergedPromptView, ...baseComponents]
+      : baseComponents;
 
     return {
       generatedImageUrl: imageUrl,

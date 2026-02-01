@@ -102,12 +102,14 @@ export interface ActionPanelProps {
  */
 export interface EnhancedPromptViewProps {
   original: string;
-  retrieved: Array<{
+  retrieved?: Array<{
     style: string;
     prompt: string;
     similarity: number;
   }>;
   final: string;
+  /** 多轮合并模式：标题显示「提示词（多轮合并）」 */
+  isMerged?: boolean;
 }
 
 /**

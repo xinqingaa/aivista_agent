@@ -1,6 +1,11 @@
 export interface GenUIComponent {
   id?: string;
-  widgetType: 'SmartCanvas' | 'ImageView' | 'AgentMessage' | 'ActionPanel';
+  widgetType:
+    | 'SmartCanvas'
+    | 'ImageView'
+    | 'AgentMessage'
+    | 'ActionPanel'
+    | 'EnhancedPromptView';
   props: {
     // SmartCanvas props (用于未来画布功能)
     imageUrl?: string;
@@ -23,6 +28,11 @@ export interface GenUIComponent {
       buttonType?: 'primary' | 'secondary' | 'outline' | 'danger';
       [key: string]: any;
     }>;
+    // EnhancedPromptView props (多轮合并提示词展示)
+    original?: string;
+    final?: string;
+    retrieved?: Array<{ style: string; prompt: string; similarity: number }>;
+    isMerged?: boolean;
     [key: string]: any;
   };
   updateMode?: 'append' | 'replace' | 'update';
