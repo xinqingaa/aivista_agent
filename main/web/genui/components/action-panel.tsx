@@ -14,6 +14,7 @@ import { ActionPanelProps as BaseActionPanelProps, ActionItem } from '@/lib/type
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Download: LucideIcons.Download,
   ExternalLink: LucideIcons.ExternalLink,
+  Pen: LucideIcons.Pen,
   RefreshCw: LucideIcons.RefreshCw,
 };
 
@@ -46,6 +47,16 @@ export function ActionPanel({ actions, imageUrl, metadata, onAction }: BaseActio
 
     if (action.id === 'regenerate_btn') {
       window.dispatchEvent(new CustomEvent('genui-action', { detail: { actionId: 'regenerate_btn' } }));
+      return;
+    }
+
+    if (action.id === 'edit_mask_btn' && latestImageUrl) {
+      window.dispatchEvent(
+        new CustomEvent('genui-action', {
+          detail: { actionId: 'edit_mask_btn', imageUrl: latestImageUrl },
+        })
+      );
+      return;
     }
 
     onAction?.(action);
@@ -58,7 +69,8 @@ export function ActionPanel({ actions, imageUrl, metadata, onAction }: BaseActio
 
         const IconComponent = getIconComponent(action.icon);
         const isDisabled =
-          (action.id === 'download_btn' || action.id === 'preview_btn') && !latestImageUrl;
+          (action.id === 'download_btn' || action.id === 'preview_btn' || action.id === 'edit_mask_btn') &&
+          !latestImageUrl;
 
         return (
           <div key={action.id} className="relative group">

@@ -45,15 +45,18 @@ interface ChatTurn {
  * 渲染 GenUI 组件
  * ThoughtLogItem 时间轴 | EnhancedPrompt | ImageView(s) | AgentMessage(s) | ActionPanel(底部)
  * ActionPanel 独立显示在底部，不合并到 ImageView
+ * 当 maskDrawImageUrl 匹配某 ImageView 的 imageUrl 时，渲染 SmartCanvas(draw_mask) 替代
  */
 function GenUIComponentRenderer({
   components,
   isProcessing,
   onImageLoad,
+  maskDrawImageUrl,
 }: {
   components: GenUIComponent[];
   isProcessing: boolean;
   onImageLoad: () => void;
+  maskDrawImageUrl?: string | null;
 }) {
   useEffect(() => {
     ensureGenUIRegistryInitialized();
@@ -115,6 +118,27 @@ function GenUIComponentRenderer({
       {images.length > 0 && (
         <div className="space-y-6">
           {images.map((imageComponent, index) => {
+            const imageUrl = (imageComponent.props as { imageUrl?: string }).imageUrl;
+            const showMaskDraw =
+              maskDrawImageUrl && imageUrl === maskDrawImageUrl;
+
+            if (showMaskDraw) {
+              return (
+                <div
+                  key={imageComponent.id || `canvas-${index}`}
+                  className="animate-in zoom-in-50 duration-500"
+                >
+                  <GenUIRenderer
+                    component={{
+                      id: imageComponent.id,
+                      widgetType: 'SmartCanvas',
+                      props: { imageUrl, mode: 'draw_mask' },
+                    }}
+                  />
+                </div>
+              );
+            }
+
             const imageProps = imageComponent.props as { onLoad?: () => void };
             const imagePropsWithLoad = {
               ...imageComponent.props,
@@ -183,6 +207,7 @@ export function ChatInterface({
   const [isAutoScroll, setIsAutoScroll] = useState(true);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [maskDrawImageUrl, setMaskDrawImageUrl] = useState<string | null>(null);
 
   const sessionIdWhenSendRef = useRef<string | null>(null);
 
@@ -393,7 +418,11 @@ export function ChatInterface({
   });
 
   useEffect(() => {
-    const handler = (e: CustomEvent<{ actionId: string }>) => {
+    const handler = (e: CustomEvent<{ actionId: string; imageUrl?: string }>) => {
+      if (e.detail?.actionId === 'edit_mask_btn' && e.detail.imageUrl) {
+        setMaskDrawImageUrl(e.detail.imageUrl);
+        return;
+      }
       if (e.detail?.actionId !== 'regenerate_btn' || isProcessing) return;
       const userTurns = turns.filter((t) => t.role === 'user');
       const lastUser = userTurns.pop();
@@ -412,6 +441,26 @@ export function ChatInterface({
     window.addEventListener('genui-action', handler as EventListener);
     return () => window.removeEventListener('genui-action', handler as EventListener);
   }, [turns, isProcessing, sendMessage]);
+
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ maskData: { base64: string; imageUrl: string } }>) => {
+      const maskData = e.detail?.maskData;
+      if (!maskData || !currentSessionId) return;
+      setMaskDrawImageUrl(null);
+
+      const userTurn: ChatTurn = {
+        id: `temp_${Date.now()}`,
+        role: 'user',
+        content: '修改这里',
+        timestamp: Date.now(),
+      };
+      setTurns((prev) => [...prev, userTurn]);
+      MessageService.saveUserMessage(currentSessionId, '修改这里').catch(console.error);
+      sendMessage('修改这里', { maskData });
+    };
+    window.addEventListener('smart-canvas-mask', handler as EventListener);
+    return () => window.removeEventListener('smart-canvas-mask', handler as EventListener);
+  }, [sendMessage, currentSessionId]);
 
   const handleScroll = useCallback(() => {
     const container = scrollRef.current;
@@ -523,6 +572,7 @@ export function ChatInterface({
                     components={turn.genUIComponents}
                     isProcessing={false}
                     onImageLoad={scrollToBottom}
+                    maskDrawImageUrl={maskDrawImageUrl}
                   />
                 )}
               </div>
@@ -535,6 +585,7 @@ export function ChatInterface({
               components={streamingComponents}
               isProcessing={isProcessing}
               onImageLoad={scrollToBottom}
+              maskDrawImageUrl={maskDrawImageUrl}
             />
           )}
 

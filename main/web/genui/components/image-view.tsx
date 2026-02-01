@@ -29,33 +29,33 @@ export function ImageView({ imageUrl, prompt, alt = 'Generated Image', onLoad, o
   return (
     <Card className="overflow-hidden mx-auto">
       <CardContent className="p-0">
-        {/* 图片容器 - 限制最大高度 */}
-        <div className="relative bg-muted">
+        {/* 图片容器 - 最大高度 200px */}
+        <div className="relative bg-muted max-h-[200px] overflow-hidden flex items-center justify-start">
           {/* 加载状态 */}
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center min-h-[200px]">
+            <div className="absolute inset-0 flex items-center justify-center min-h-[120px]">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           )}
 
           {/* 错误状态 */}
           {error && (
-            <div className="flex items-center justify-center min-h-[200px] bg-destructive/10">
-              <div className="text-center p-4">
-                <ImageIcon className="h-12 w-12 mx-auto mb-2 text-destructive" />
+            <div className="flex items-center justify-center min-h-[120px] bg-destructive/10 p-4">
+              <div className="text-center">
+                <ImageIcon className="h-10 w-10 mx-auto mb-2 text-destructive" />
                 <p className="text-sm text-destructive">{error}</p>
               </div>
             </div>
           )}
 
-          {/* 图片 */}
+          {/* 图片 - block 避免 inline 导致 max-height 失效 */}
           {!error && (
             <img
               src={imageUrl}
               alt={alt}
               onLoad={handleLoad}
               onError={handleError}
-              className={` max-w-full max-h-[500px] object-contain transition-opacity ${
+              className={`block max-w-full max-h-[200px] w-auto h-auto object-contain transition-opacity ${
                 isLoading ? 'opacity-0' : 'opacity-100'
               }`}
             />

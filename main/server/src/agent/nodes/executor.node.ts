@@ -232,6 +232,7 @@ export class ExecutorNode {
           actions: [
             { id: 'download_btn', label: '下载', type: 'button', icon: 'Download' },
             { id: 'preview_btn', label: '预览', type: 'button', icon: 'ExternalLink' },
+            { id: 'edit_mask_btn', label: '局部重绘', type: 'button', icon: 'Pen' },
             {
               id: 'regenerate_btn',
               label: '重新生成',
