@@ -1,0 +1,30 @@
+# 文档忽略规则
+# 只保留带 _RE.md 后缀的文档，其他所有 .md 文档都会被忽略
+
+# 忽略 docs 目录下的所有 md 文件（除了 _RE.md）
+docs/**/*.md
+!docs/**/*_RE.md
+
+# 忽略 main/server/docs 目录下的所有 md 文件（除了 _RE.md）
+main/server/docs/**/*.md
+!main/server/docs/**/*_RE.md
+
+# 忽略 main/web/docs 目录下的所有 md 文件（除了 _RE.md）
+main/web/docs/**/*.md
+!main/web/docs/**/*_RE.md
+
+# 忽略 main/client 目录下的所有 md 文件（除了 _RE.md）
+main/client/docs/**/*.md
+!main/client/docs/**/*_RE.md
+
+# 忽略 v0.0.1 旧版本文档
+docs/v0.0.1/
+
+# 常规忽略规则
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
