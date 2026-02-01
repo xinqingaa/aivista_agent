@@ -28,3 +28,23 @@ build/
 .env.local
 *.log
 .DS_Store
+
+# IDE 和编辑器配置
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+.metadata
+.project
+.settings/
+
+# 测试和覆盖率
+coverage/
+.nyc_output/
+*.log

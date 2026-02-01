@@ -583,4 +583,3 @@ sequenceDiagram
 
 **文档版本**：v1.0
 **最后更新**：2025-02-01
-**维护者**：AiVista Team
