@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ILlmService } from '../../llm/interfaces/llm-service.interface';
 import { AgentState, QualityCheck } from '../interfaces/agent-state.interface';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
+import { parseBooleanEnv } from '../../config/config.util';
 
 /**
  * Critic 节点 - 质量审查节点
@@ -55,7 +56,7 @@ export class CriticNode {
     try {
       // 2. 获取配置参数
       const passThreshold = this.configService.get<number>('CRITIC_PASS_THRESHOLD') ?? 0.7;
-      const useLlm = this.configService.get<boolean>('CRITIC_USE_LLM') ?? false;
+      const useLlm = parseBooleanEnv(this.configService.get<string>('CRITIC_USE_LLM'));
       const maxRetryCount = this.configService.get<number>('MAX_RETRY_COUNT') ?? 3;
       const currentRetryCount = state.metadata?.retryCount || 0;
 

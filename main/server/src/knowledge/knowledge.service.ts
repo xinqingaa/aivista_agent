@@ -6,6 +6,7 @@ import * as fs from 'fs/promises';
 import { IEmbeddingService } from './interfaces/embedding-service.interface';
 import { INITIAL_STYLES, StyleData } from './data/initial-styles';
 import { UpdateStyleDto } from './dto/update-style.dto';
+import { parseBooleanEnv } from 'src/config/config.util';
 
 /**
  * 系统内置样式ID列表
@@ -17,6 +18,16 @@ export const SYSTEM_STYLE_IDS = [
   'style_003', // Minimalist
   'style_004', // Oil Painting
   'style_005', // Anime
+  'style_006', // Pixel Art
+  'style_007', // Ink Painting
+  'style_008', // Vaporwave
+  'style_009', // 3D Rendering
+  'style_010', // Sketch
+  'style_011', // Photorealistic
+  'style_012', // Cinematic
+  'style_013', // Fantasy Wonderland
+  'style_014', // Dark Gothic
+  'style_015', // Macro Photography
 ] as const;
 
 /**
@@ -95,8 +106,8 @@ export class KnowledgeService implements OnModuleInit {
 
       // 检查数据库是否已存在
       const dbExists = await this.checkDatabaseExists();
-      const forceInit = this.configService.get<string>('FORCE_INIT_KNOWLEDGE_BASE') === 'true';
-
+      const forceInit = parseBooleanEnv(this.configService.get<string>('FORCE_INIT_KNOWLEDGE_BASE'));
+      console.log('forceInit', forceInit);
       if (dbExists && !forceInit) {
         this.logger.log('Knowledge base already exists, skipping initialization');
         await this.openDatabase();

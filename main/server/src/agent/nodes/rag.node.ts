@@ -27,13 +27,69 @@ export class RagNode {
 
   // 风格名称映射（中文 → 英文）
   private readonly styleMap: Record<string, string> = {
+    // 原有风格
     '赛博朋克': 'Cyberpunk',
     '水彩': 'Watercolor',
+    '水彩画': 'Watercolor',
     '极简': 'Minimalist',
     '极简主义': 'Minimalist',
     '油画': 'Oil Painting',
     '动漫': 'Anime',
     '动画': 'Anime',
+    
+    // 新增风格
+    '像素': 'Pixel Art',
+    '像素艺术': 'Pixel Art',
+    '像素风': 'Pixel Art',
+    '8位': 'Pixel Art',
+    '复古游戏': 'Pixel Art',
+    
+    '水墨': 'Ink Painting',
+    '水墨画': 'Ink Painting',
+    '国画': 'Ink Painting',
+    '中国画': 'Ink Painting',
+    '写意': 'Ink Painting',
+    
+    '蒸汽波': 'Vaporwave',
+    '复古': 'Vaporwave',
+    '90年代': 'Vaporwave',
+    
+    '3D': '3D Rendering',
+    '三维': '3D Rendering',
+    '3D渲染': '3D Rendering',
+    'CGI': '3D Rendering',
+    
+    '素描': 'Sketch',
+    '铅笔画': 'Sketch',
+    '草图': 'Sketch',
+    '手绘': 'Sketch',
+    
+    '写实': 'Photorealistic',
+    '摄影': 'Photorealistic',
+    '照片': 'Photorealistic',
+    '真实': 'Photorealistic',
+    '逼真': 'Photorealistic',
+    
+    '电影': 'Cinematic',
+    '影视': 'Cinematic',
+    '电影感': 'Cinematic',
+    '大片': 'Cinematic',
+    
+    '梦幻': 'Fantasy Wonderland',
+    '仙境': 'Fantasy Wonderland',
+    '奇幻': 'Fantasy Wonderland',
+    '童话': 'Fantasy Wonderland',
+    '魔法': 'Fantasy Wonderland',
+    
+    '哥特': 'Dark Gothic',
+    '暗黑': 'Dark Gothic',
+    '黑暗': 'Dark Gothic',
+    '哥特式': 'Dark Gothic',
+    
+    '微距': 'Macro Photography',
+    '特写': 'Macro Photography',
+    '近景': 'Macro Photography',
+    '细节': 'Macro Photography',
   };
 
   constructor(

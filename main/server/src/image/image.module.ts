@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AliyunImageService } from './services/aliyun-image.service';
 import { MockImageService } from './services/mock-image.service';
 import { IImageService } from './interfaces/image-service.interface';
+import { parseBooleanEnv } from '../config/config.util';
 
 /**
  * 图片生成服务模块
@@ -26,9 +27,10 @@ import { IImageService } from './interfaces/image-service.interface';
         aliyunImageService: AliyunImageService,
         mockImageService: MockImageService,
       ): IImageService => {
-        const useRealService =
-          configService.get<boolean>('USE_REAL_IMAGE_SERVICE') ?? false;
-
+        const useRealService = parseBooleanEnv(
+          configService.get<string>('USE_REAL_IMAGE_SERVICE')
+        );
+        console.log('useRealService', useRealService);
         if (useRealService) {
           return aliyunImageService;
         } else {

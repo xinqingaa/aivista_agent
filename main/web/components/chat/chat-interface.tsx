@@ -448,6 +448,9 @@ export function ChatInterface({
       if (!maskData || !currentSessionId) return;
       setMaskDrawImageUrl(null);
 
+      // 保存 sessionId 以便 onChatEnd 时能正确保存 AI 响应到数据库
+      sessionIdWhenSendRef.current = currentSessionId;
+
       const userTurn: ChatTurn = {
         id: `temp_${Date.now()}`,
         role: 'user',

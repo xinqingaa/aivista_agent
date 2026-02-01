@@ -108,12 +108,20 @@ class EnvironmentVariables {
   @IsOptional()
   MAX_RETRY_COUNT?: number;
 
+  // 布尔型配置 - 统一使用 string 类型，避免依赖 enableImplicitConversion
+  @IsString()
   @IsOptional()
-  CRITIC_USE_LLM?: boolean;
+  CRITIC_USE_LLM?: string;
 
   // 图片生成服务配置
+  @IsString()
   @IsOptional()
-  USE_REAL_IMAGE_SERVICE?: boolean;
+  USE_REAL_IMAGE_SERVICE?: string;
+
+  // 知识库配置
+  @IsString()
+  @IsOptional()
+  FORCE_INIT_KNOWLEDGE_BASE?: string;
 
   // DashScope API 配置
   @IsString()
