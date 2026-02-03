@@ -6,11 +6,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Plus, MessageSquare, Menu } from 'lucide-react';
+import { Plus, Menu } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { SessionItem } from './session-item';
+import { SessionList } from './session-list';
 import { cn } from '@/lib/utils';
 
 /**
@@ -76,7 +75,7 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        'border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-full flex flex-col transition-all duration-300',
+        'hidden md:flex border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-full flex-col transition-all duration-300',
         sidebarOpen ? 'w-72' : 'w-16'
       )}
     >
@@ -109,39 +108,16 @@ export function Sidebar() {
       </div>
 
       {/* 会话列表 */}
-      <ScrollArea className="flex-1">
-        <div className={cn(sidebarOpen ? 'p-2' : 'p-1')}>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              {sidebarOpen && <div className="text-sm text-muted-foreground">加载中...</div>}
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <MessageSquare className={cn('text-muted-foreground/50 mb-3', sidebarOpen ? 'h-12 w-12' : 'h-6 w-6')} />
-              {sidebarOpen && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-1">暂无对话</p>
-                  <p className="text-xs text-muted-foreground">点击上方按钮创建新对话</p>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {sessions.map((session) => (
-                <SessionItem
-                  key={session.id}
-                  session={session}
-                  isActive={session.id === currentSessionId}
-                  onSelect={handleSelectSession}
-                  onDelete={handleDeleteSession}
-                  onUpdateTitle={handleUpdateTitle}
-                  collapsed={!sidebarOpen}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+      <SessionList
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        isLoading={isLoading}
+        collapsed={!sidebarOpen}
+        onSelect={handleSelectSession}
+        onDelete={handleDeleteSession}
+        onUpdateTitle={handleUpdateTitle}
+        alwaysShowActions={false}
+      />
 
       {/* 底部：统计信息（仅展开时显示） */}
       {sidebarOpen && sessions.length > 0 && (

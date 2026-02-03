@@ -27,6 +27,8 @@ interface SessionItemProps {
   onDelete: (sessionId: string) => void;
   onUpdateTitle: (sessionId: string, title: string) => void;
   collapsed?: boolean;
+  /** 为 true 时编辑/删除按钮常驻显示（用于移动端 Sheet） */
+  alwaysShowActions?: boolean;
 }
 
 /**
@@ -64,6 +66,7 @@ export function SessionItem({
   onDelete,
   onUpdateTitle,
   collapsed = false,
+  alwaysShowActions = false,
 }: SessionItemProps) {
   // 显示优先级：用户自定义标题 > lastMessage > 默认标题
   // 如果 title 不是默认值"新对话"，说明用户自定义了，优先显示
@@ -172,11 +175,11 @@ export function SessionItem({
         </div>
       )}
 
-      {/* 操作按钮 - 悬停时显示，编辑时始终显示 */}
+      {/* 操作按钮 - 悬停时显示（或 alwaysShowActions 时常驻），编辑时始终显示 */}
       <div
         className={cn(
           'flex-shrink-0 items-center gap-1',
-          isEditing ? 'flex' : 'hidden group-hover:flex'
+          isEditing ? 'flex' : alwaysShowActions ? 'flex' : 'hidden group-hover:flex'
         )}
         onClick={(e) => e.stopPropagation()}
       >

@@ -195,7 +195,7 @@ function GenUIComponentRenderer({
 
 export function ChatInterface({
   title = 'AI 创作助手',
-  placeholder = '输入你的创意，让 AI 来实现...',
+  placeholder = '输入创意，如：赛博朋克猫…',
   onChatEnd,
 }: ChatInterfaceProps) {
   // ========== 状态管理 ==========
@@ -619,7 +619,7 @@ export function ChatInterface({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={isProcessing}
-            className="min-h-[52px] max-h-[200px] resize-none pr-14 py-3.5 rounded-xl shadow-sm border-muted-foreground/20 focus-visible:ring-blue-500/20"
+            className="min-h-[52px] max-h-[200px] resize-none pr-14 py-3.5 rounded-xl shadow-sm border-muted-foreground/20 focus-visible:ring-blue-500/20 [&::placeholder]:whitespace-nowrap [&::placeholder]:overflow-hidden [&::placeholder]:text-ellipsis"
             rows={1}
           />
           <Button
